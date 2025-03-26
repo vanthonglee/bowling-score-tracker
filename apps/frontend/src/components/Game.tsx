@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useGameStore } from '../store';
-// import { Input, Button, Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@shadcn/ui';
 import {
   Table,
   TableBody,
@@ -20,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+
 
 interface ScoreboardEntry {
   name: string;
@@ -43,18 +43,38 @@ const Game = () => {
   };
 
   const getRoll2Options = (roll1: string) => {
-    if (roll1 === 'X' || roll1 === '10') return []; // Strike, no Roll 2
-    const roll1Value = parseInt(roll1);
-    if (isNaN(roll1Value)) return [];
-    const remainingPins = 10 - roll1Value;
-    const options = Array.from({ length: remainingPins + 1 }, (_, i) => i.toString());
-    if (remainingPins > 0) options.push('/'); // Spare option
-    return options;
+    if (!roll1) return [];
+    if (currentFrame < 10) {
+      if (roll1 === 'X' || roll1 === '10') return []; // Strike, no Roll 2 in frames 1-9
+      const roll1Value = parseInt(roll1);
+      if (isNaN(roll1Value)) return [];
+      const remainingPins = 10 - roll1Value;
+      const options = Array.from({ length: remainingPins + 1 }, (_, i) => i.toString());
+      if (remainingPins > 0) options.push('/'); // Spare option
+      return options;
+    } else {
+      // 10th frame: Roll 2 is always allowed
+      if (roll1 === 'X' || roll1 === '10') {
+        return ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'X'];
+      }
+      const roll1Value = parseInt(roll1);
+      if (isNaN(roll1Value)) return [];
+      const remainingPins = 10 - roll1Value;
+      const options = Array.from({ length: remainingPins + 1 }, (_, i) => i.toString());
+      if (remainingPins > 0) options.push('/'); // Spare option
+      return options;
+    }
   };
 
   const getRoll3Options = (roll1: string, roll2: string) => {
+    if (currentFrame !== 10) return []; // Only for 10th frame
+    if (!roll1 || !roll2) return [];
+
     if (roll1 === 'X' || roll1 === '10') {
-      if (roll2 === 'X') return ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'X'];
+      // After a strike, Roll 2 can be anything, and Roll 3 is always required
+      if (roll2 === 'X' || roll2 === '10') {
+        return ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'X'];
+      }
       const roll2Value = parseInt(roll2);
       if (isNaN(roll2Value)) return [];
       const remainingPins = 10 - roll2Value;
@@ -62,10 +82,15 @@ const Game = () => {
       if (remainingPins > 0) options.push('/'); // Spare option
       return options;
     }
-    if (roll2 === '/') {
+
+    const roll1Value = parseInt(roll1);
+    const roll2Value = roll2 === '/' ? 10 - roll1Value : parseInt(roll2);
+    if (roll1Value + roll2Value === 10 && roll2Value !== 0) {
+      // After a spare (e.g., 3 and 7), Roll 3 is required and can be anything
       return ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'X'];
     }
-    return []; // No third roll
+
+    return []; // No third roll for open frame
   };
 
   // Validate if all required fields are filled
@@ -78,16 +103,24 @@ const Game = () => {
       // Roll 1 is mandatory
       if (!roll1) return true;
 
-      // If Roll 1 is a strike (X or 10), Roll 2 should not be required in frames 1-9
-      if (currentFrame < 10 && (roll1 === 'X' || roll1 === '10')) {
-        continue; // No need to check Roll 2
-      }
+      if (currentFrame < 10) {
+        // Frames 1-9: If Roll 1 is a strike, no Roll 2 is needed
+        if (roll1 === 'X' || roll1 === '10') continue;
+        // Otherwise, Roll 2 is mandatory
+        if (!roll2) return true;
+      } else {
+        // 10th frame: Roll 2 is always required
+        if (!roll2) return true;
 
-      // If Roll 1 is not a strike, Roll 2 is mandatory
-      if (roll1 !== 'X' && roll1 !== '10' && !roll2) return true;
+        const roll1Value = roll1 === 'X' || roll1 === '10' ? 10 : parseInt(roll1);
+        const roll2Value = roll2 === 'X' || roll2 === '10' ? 10 : roll2 === '/' ? 10 - roll1Value : parseInt(roll2);
 
-      // 10th frame: If Roll 1 is a strike or Roll 1 + Roll 2 is a spare, Roll 3 is mandatory
-      if (currentFrame === 10) {
+        // Validate that the first two rolls are valid (sum ≤ 10 unless a spare)
+        if (roll1 !== 'X' && roll1 !== '10' && roll2 !== '/' && roll1Value + roll2Value > 10) {
+          return true; // Invalid combination (e.g., 2 and 9)
+        }
+
+        // If Roll 1 is a strike or Roll 1 + Roll 2 is a spare, Roll 3 is mandatory
         const roll3Options = getRoll3Options(roll1, roll2);
         if (roll3Options.length > 0 && !roll3) return true;
       }
@@ -99,9 +132,8 @@ const Game = () => {
     try {
       for (const player of players) {
         let rolls = scores[player] || ['', '', ''];
-        // If Roll 1 is a strike in frames 1-9, ignore Roll 2
         if (currentFrame < 10 && (rolls[0] === 'X' || rolls[0] === '10')) {
-          rolls = [rolls[0]]; // Only send Roll 1
+          rolls = [rolls[0]]; // Only send Roll 1 for strikes in frames 1-9
         }
         const res = await fetch(`http://localhost:8080/api/game/${gameId}/frame/${currentFrame}`, {
           method: 'POST',
@@ -113,7 +145,6 @@ const Game = () => {
           throw new Error(data.error || 'Failed to submit scores');
         }
       }
-      // Clear scores after successful submission
       setScores({});
       setCurrentFrame(currentFrame + 1);
     } catch (error) {
@@ -129,7 +160,7 @@ const Game = () => {
         const roll1 = scores[player]?.[0] || '';
         const roll2 = scores[player]?.[1] || '';
         const roll2Options = getRoll2Options(roll1);
-        const roll3Options = currentFrame === 10 ? getRoll3Options(roll1, roll2) : [];
+        const roll3Options = getRoll3Options(roll1, roll2);
 
         return (
           <div key={player} className="mb-4">
@@ -166,7 +197,7 @@ const Game = () => {
                   })
                 }
                 value={roll2}
-                disabled={roll1 === 'X' || roll1 === '10' || !roll1}
+                disabled={currentFrame < 10 && (roll1 === 'X' || roll1 === '10') || !roll1}
               >
                 <SelectTrigger className="w-24">
                   <SelectValue placeholder="Roll 2" />

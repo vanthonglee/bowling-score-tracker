@@ -116,16 +116,22 @@ function parseRolls(rolls: string[], frame: number): number[] {
     }
     throw new Error('Invalid rolls for frame: expected 1 roll for a strike or 2 rolls for spare/open');
   } else {
-    if (parsed.length === 2 && parsed[0] + parsed[1] < 10) {
-      return parsed; // Open 10th frame
+    // 10th frame validation
+    if (parsed.length === 2) {
+      if (parsed[0] === 10 || (parsed[0] + parsed[1] === 10 && parsed[1] !== 0)) {
+        throw new Error('10th frame with a strike or spare requires 3 rolls');
+      }
+      if (parsed[0] + parsed[1] < 10) {
+        return parsed; // Open frame, 2 rolls are fine
+      }
     }
     if (parsed.length === 3) {
       if (parsed[0] === 10 || (parsed[0] + parsed[1] === 10 && parsed[1] !== 0)) {
-        return parsed; // Strike or spare in 10th frame
+        return parsed; // Strike or spare, 3 rolls are correct
       }
-      throw new Error('Third roll only allowed after a strike or spare in the 10th frame');
+      throw new Error('Third roll in 10th frame is only allowed after a strike or spare');
     }
-    throw new Error('Invalid rolls for 10th frame: expected 2 rolls for open, 3 rolls for strike/spare');
+    throw new Error('Invalid rolls for 10th frame: expected 2 rolls for an open frame or 3 rolls for a strike/spare');
   }
 }
 
