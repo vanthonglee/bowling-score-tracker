@@ -6,6 +6,7 @@ services:
     build:
       context: .
       dockerfile: ./apps/frontend/Dockerfile
+    image: ${NAMESPACE}/frontend:${TAG:-latest}
     restart: always
     ports:
       - 3000:80
@@ -16,6 +17,7 @@ services:
     build:
       context: .
       dockerfile: ./apps/backend/Dockerfile
+    image: ${NAMESPACE}/backend:${TAG:-latest}
     restart: always
     ports:
       - 8080:8080
