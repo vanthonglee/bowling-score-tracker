@@ -34,6 +34,7 @@ jobs:
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
+    needs: [security-check] # Runs after all 
 
     steps:
       # Checkout the repository
@@ -101,5 +102,7 @@ jobs:
         env:
           TAG: ${{ github.sha }} # Use commit SHA as tag; or "latest" for main
         run: |
-          docker-compose build
-          docker-compose push
+          COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose -f docker-compose.yml build
+          docker push ${{ secrets.DOCKER_USERNAME }}/bowling-score-tracker-backend:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/bowling-score-tracker-frontend:latest
+
