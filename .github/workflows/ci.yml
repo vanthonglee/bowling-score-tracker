@@ -1,0 +1,54 @@
+name: CI
+
+# Trigger on push or pull requests to main branch
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for Turborepo change detection
+
+      # Set up Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'yarn'  # Cache Yarn dependencies
+
+      # Install dependencies with Yarn
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile  # Ensures consistent installs
+
+      # Cache Turborepo artifacts
+      - name: Cache Turbo build
+        uses: actions/cache@v4
+        with:
+          path: |
+            .turbo
+            **/node_modules/.cache/turbo
+          key: turbo-${{ runner.os }}-${{ github.job }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-${{ github.job }}-
+
+      # Lint all affected projects
+      - name: Lint
+        run: yarn turbo run lint --concurrency=10
+
+      # Build all affected projects
+      - name: Build
+        run: yarn turbo run build --concurrency=10
+
+      # # Run tests for all affected projects
+      # - name: Test
+      #   run: yarn turbo run test --concurrency=10
