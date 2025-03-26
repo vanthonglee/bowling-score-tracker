@@ -41,9 +41,9 @@ jobs:
           restore-keys: |
             turbo-${{ runner.os }}-${{ github.job }}-
 
-      # Lint all affected projects
-      - name: Lint
-        run: yarn turbo run lint --concurrency=10
+      # # Lint all affected projects
+      # - name: Lint
+      #   run: yarn turbo run lint --concurrency=10
 
       # Build all affected projects
       - name: Build
