@@ -58,7 +58,7 @@ app.post('/api/game/:gameId/frame/:frameNumber', (req: Request, res: Response) =
     playerObj.frames[frameNum - 1] = { rolls: parsedRolls };
     res.json({ success: true });
   } catch (error) {
-    return res.status(400).json({ error: error.message });
+    return res.status(400).json({ error: (error as any).message });
   }
 });
 
