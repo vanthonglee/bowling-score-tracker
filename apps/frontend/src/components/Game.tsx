@@ -235,41 +235,50 @@ const Game = () => {
         Submit Scores
       </Button>
 
+      {/* Updated Scoreboard */}
       <h2 className="mt-4 text-xl">Scoreboard</h2>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Frame</TableHead>
-            {players.map(player => (
-              <TableHead key={player}>{player}</TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {Array.from({ length: 10 }, (_, i) => i + 1).map(frame => (
-            <TableRow
-              key={frame}
-              className={frame === currentFrame ? 'bg-blue-100' : ''}
-            >
-              <TableCell>{frame}</TableCell>
-              {scoreboard.map(player => {
-                const frameData = player.frames[frame - 1];
-                return (
-                  <TableCell key={player.name}>
-                    {frameData?.display || '-'} {frameData?.cumulativeTotal !== null ? frameData.cumulativeTotal : ''}
-                  </TableCell>
-                );
-              })}
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[100px] text-center">Player</TableHead>
+              {Array.from({ length: 10 }, (_, i) => i + 1).map(frame => (
+                <TableHead
+                  key={frame}
+                  className={`text-center ${frame === currentFrame ? 'bg-blue-100' : ''}`}
+                >
+                  {frame}
+                </TableHead>
+              ))}
+              <TableHead className="text-center">Total</TableHead>
             </TableRow>
-          ))}
-          <TableRow>
-            <TableCell>Total</TableCell>
+          </TableHeader>
+          <TableBody>
             {scoreboard.map(player => (
-              <TableCell key={player.name}>{player.total}</TableCell>
+              <TableRow key={player.name}>
+                <TableCell className="w-[100px]">{player.name}</TableCell>
+                {Array.from({ length: 10 }, (_, i) => i + 1).map(frame => {
+                  const frameData = player.frames[frame - 1];
+                  return (
+                    <TableCell
+                      key={frame}
+                      className={`p-0 ${frame === currentFrame ? 'bg-blue-100' : ''}`}
+                    >
+                      <div className="flex flex-col items-center justify-center h-16 bg-gray-200 border-r border-gray-300">
+                        <div className="text-sm">{frameData?.display || '-'}</div>
+                        <div className="text-lg font-semibold">
+                          {frameData?.cumulativeTotal !== null ? frameData.cumulativeTotal : '-'}
+                        </div>
+                      </div>
+                    </TableCell>
+                  );
+                })}
+                <TableCell className="text-center">{player.total}</TableCell>
+              </TableRow>
             ))}
-          </TableRow>
-        </TableBody>
-      </Table>
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 };
