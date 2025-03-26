@@ -116,5 +116,6 @@ jobs:
         run: |
           COMPOSE_DOCKER_CLI_BUILD=1 DOCKER_BUILDKIT=1 docker-compose -f docker-compose.yml build
           docker login docker.io -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          docker image ls
           docker push ${{ secrets.DOCKER_USERNAME }}/bowling-score-tracker-backend:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/bowling-score-tracker-frontend:latest
