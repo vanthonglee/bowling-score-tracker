@@ -9,28 +9,28 @@ on:
 
 jobs:
   security-check:
-      name: Security Check
-      runs-on: ubuntu-latest
+    name: Security Check
+    runs-on: ubuntu-latest
 
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
-          with:
-            fetch-depth: 0  # Still needed if you use Turbo filters later
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Still needed if you use Turbo filters later
 
-        - name: Setup Node.js
-          uses: actions/setup-node@v4
-          with:
-            node-version: 20
-            cache: 'yarn'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "yarn"
 
-        - name: Install dependencies
-          run: yarn install --frozen-lockfile
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
 
-        - name: Run security audit
-          run: yarn audit --groups dependencies production
-          continue-on-error: true  # Allows reporting without failing; adjust as needed
-          
+      - name: Run security audit
+        run: yarn audit --groups dependencies production
+        continue-on-error: true # Allows reporting without failing; adjust as needed
+
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
@@ -40,18 +40,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for Turborepo change detection
+          fetch-depth: 0 # Full history for Turborepo change detection
 
       # Set up Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'yarn'  # Cache Yarn dependencies
+          cache: "yarn" # Cache Yarn dependencies
 
       # Install dependencies with Yarn
       - name: Install dependencies
-        run: yarn install --frozen-lockfile  # Ensures consistent installs
+        run: yarn install --frozen-lockfile # Ensures consistent installs
 
       # Cache Turborepo artifacts
       - name: Cache Turbo build
@@ -77,29 +77,29 @@ jobs:
       #   run: yarn turbo run test --concurrency=10
 
   docker-build-push:
-      name: Build and Push Docker Images
-      runs-on: ubuntu-latest
-      needs: [security-check, build-and-test, code-coverage]  # Runs after all other jobs succeed
-      if: github.event_name == 'push'  # Only run on push, not PRs
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: [security-check, build-and-test, code-coverage] # Runs after all other jobs succeed
+    if: github.event_name == 'push' # Only run on push, not PRs
 
-      steps:
-        - name: Checkout code
-          uses: actions/checkout@v4
-          with:
-            fetch-depth: 0
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-        - name: Set up Docker Buildx
-          uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-        - name: Log in to Docker Hub
-          uses: docker/login-action@v3
-          with:
-            username: ${{ secrets.DOCKER_USERNAME }}
-            password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-        - name: Build and push Docker images
-          env:
-            TAG: ${{ github.sha }}  # Use commit SHA as tag; or "latest" for main
-          run: |
-            docker-compose build
-            docker-compose push
+      - name: Build and push Docker images
+        env:
+          TAG: ${{ github.sha }} # Use commit SHA as tag; or "latest" for main
+        run: |
+          docker-compose build
+          docker-compose push
