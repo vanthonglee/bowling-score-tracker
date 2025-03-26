@@ -3,23 +3,13 @@ import { useGameStore } from '../store';
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Input } from './ui/input';
 import { Button } from './ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-
+import { Badge } from "@/components/ui/badge"
 
 interface ScoreboardEntry {
   name: string;
@@ -153,88 +143,91 @@ const Game = () => {
     }
   };
 
+  const roll1Options = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'X'];
+
   return (
     <div className="p-4">
       <h1 className="text-xl mb-4">Frame {currentFrame}</h1>
       {players.map(player => {
         const roll1 = scores[player]?.[0] || '';
         const roll2 = scores[player]?.[1] || '';
+        const roll3 = scores[player]?.[2] || '';
         const roll2Options = getRoll2Options(roll1);
         const roll3Options = getRoll3Options(roll1, roll2);
 
         return (
           <div key={player} className="mb-4">
             <h3>{player}</h3>
-            <div className="flex space-x-2">
-              {/* Roll 1 Dropdown */}
-              <Select
-                onValueChange={value =>
-                  setScores({
-                    ...scores,
-                    [player]: [value, scores[player]?.[1] || '', scores[player]?.[2] || ''],
-                  })
-                }
-                value={roll1}
-              >
-                <SelectTrigger className="w-24">
-                  <SelectValue placeholder="Roll 1" />
-                </SelectTrigger>
-                <SelectContent>
-                  {['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'X'].map(option => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
 
-              {/* Roll 2 Dropdown */}
-              <Select
-                onValueChange={value =>
-                  setScores({
-                    ...scores,
-                    [player]: [scores[player]?.[0] || '', value, scores[player]?.[2] || ''],
-                  })
-                }
-                value={roll2}
-                disabled={currentFrame < 10 && (roll1 === 'X' || roll1 === '10') || !roll1}
-              >
-                <SelectTrigger className="w-24">
-                  <SelectValue placeholder="Roll 2" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roll2Options.map(option => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Roll 3 Dropdown (10th Frame Only) */}
-              {currentFrame === 10 && roll3Options.length > 0 && (
-                <Select
-                  onValueChange={value =>
-                    setScores({
-                      ...scores,
-                      [player]: [scores[player]?.[0] || '', scores[player]?.[1] || '', value],
-                    })
-                  }
-                  value={scores[player]?.[2] || ''}
-                >
-                  <SelectTrigger className="w-24">
-                    <SelectValue placeholder="Roll 3" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {roll3Options.map(option => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+            {/* Roll 1 Badges */}
+            <div className="mb-2">
+              <label className="block mb-1">Roll 1</label>
+              <div className="w-full flex overflow-x-auto space-x-2 pb-2">
+                {roll1Options.map(option => (
+                  <Badge
+                    key={option}
+                    variant={roll1 === option ? 'default' : 'secondary'}
+                    className="cursor-pointer px-3 py-1 whitespace-nowrap"
+                    onClick={() =>
+                      setScores({
+                        ...scores,
+                        [player]: [option, scores[player]?.[1] || '', scores[player]?.[2] || ''],
+                      })
+                    }
+                  >
+                    {option}
+                  </Badge>
+                ))}
+              </div>
             </div>
+
+            {/* Roll 2 Badges */}
+            {(currentFrame < 10 ? roll1 !== 'X' && roll1 !== '10' : true) && roll1 && (
+              <div className="mb-2">
+                <label className="block mb-1">Roll 2</label>
+                <div className="w-full flex overflow-x-auto space-x-2 pb-2">
+                  {roll2Options.map(option => (
+                    <Badge
+                      key={option}
+                      variant={roll2 === option ? 'default' : 'secondary'}
+                      className="cursor-pointer px-3 py-1 whitespace-nowrap"
+                      onClick={() =>
+                        setScores({
+                          ...scores,
+                          [player]: [scores[player]?.[0] || '', option, scores[player]?.[2] || ''],
+                        })
+                      }
+                    >
+                      {option}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Roll 3 Badges (10th Frame Only) */}
+            {currentFrame === 10 && roll3Options.length > 0 && (
+              <div className="mb-2">
+                <label className="block mb-1">Roll 3</label>
+                <div className="w-full flex overflow-x-auto space-x-2 pb-2">
+                  {roll3Options.map(option => (
+                    <Badge
+                      key={option}
+                      variant={roll3 === option ? 'default' : 'secondary'}
+                      className="cursor-pointer px-3 py-1 whitespace-nowrap"
+                      onClick={() =>
+                        setScores({
+                          ...scores,
+                          [player]: [scores[player]?.[0] || '', scores[player]?.[1] || '', option],
+                        })
+                      }
+                    >
+                      {option}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         );
       })}

@@ -19,7 +19,7 @@ interface ScoreboardEntry {
 }
 
 const Results = () => {
-  const { gameId, setGameId } = useGameStore();
+  const { gameId, setGameId, setCurrentFrame } = useGameStore();
   const [scores, setScores] = useState<ScoreboardEntry[]>([]);
 
   useEffect(() => {
@@ -41,6 +41,11 @@ const Results = () => {
 
   // Determine the winner based on the highest total score
   const winner = scores.reduce((prev, curr) => (curr.total > prev.total ? curr : prev), scores[0] || { total: 0, name: '' });
+
+  const handleNewGame = () => {
+    setGameId(null); // Reset gameId to navigate to Home
+    setCurrentFrame(1); // Reset currentFrame to 1 for a new game
+  };
 
   return (
     <div className="p-4">
@@ -87,7 +92,7 @@ const Results = () => {
       </Table>
 
       {/* New Game Button */}
-      <Button className="mt-4" onClick={() => setGameId(null)}>
+      <Button className="mt-4" onClick={handleNewGame}>
         New Game
       </Button>
     </div>
