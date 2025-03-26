@@ -84,7 +84,7 @@ jobs:
   docker-build-push:
     name: Build and Push Docker Images
     runs-on: ubuntu-latest
-    needs: [security-check, build-and-test, code-coverage]
+    needs: [security-check, build-and-test]
     if: github.event_name == 'push'
 
     steps:
