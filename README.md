@@ -112,7 +112,7 @@ sh scripts/docker-down.sh
 
 ## Option 2 CI/CD (DevSecOps), EKS, Nginx LoadBalancer, Akamai CDN
 
-![alt text](image.png)
+![alt text](./screenshots/image.png)
 
 ### Flow
 
