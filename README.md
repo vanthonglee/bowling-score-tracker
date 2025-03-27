@@ -159,11 +159,9 @@ sh scripts/docker-down.sh
 
 ![alt text](image-4.png)
 
-
+#### Demo (Happy Case)
 
 https://github.com/user-attachments/assets/d870ce2c-838b-4445-bb5f-e08396ab5d12
-
-
 
 # TODO
 
