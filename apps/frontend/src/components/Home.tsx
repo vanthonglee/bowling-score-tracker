@@ -3,23 +3,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useGameStore } from '@/store';
 
-// Home component for starting a new game
 const Home = () => {
   // State for player names input
   const [names, setNames] = useState(['', '', '', '', '']);
   // State management using Zustand store
   const { setGameId, setPlayers, setCurrentFrame, setError } = useGameStore();
 
+  // Check if at least two players have entered their names to enable the Start Game button
+  const nonEmptyNames = names.filter(name => name.trim() !== '');
+  const isStartDisabled = nonEmptyNames.length < 2;
+
   // Handle starting a new game
   const startGame = async () => {
     const players = names.filter(name => name.trim());
-    if (players.length === 0) {
-      setError('Please enter at least one player name');
+    if (players.length < 2) {
+      setError('Please enter at least two player names');
       return;
     }
 
     try {
-      const apiUrl = process.env.REACT_APP_API_URL;
+      // Use the environment variable for the backend API URL
+      const apiUrl = process.env.REACT_APP_API_URL; 
       const res = await fetch(`${apiUrl}/api/game/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -60,8 +64,21 @@ const Home = () => {
           aria-label={`Player ${i + 1} name`} // Accessibility: ARIA label for screen readers
         />
       ))}
-      {/* Start Game button */}
-      <Button onClick={startGame} aria-label="Start a new game">
+      {/* Notification: Show if fewer than two players have entered their names */}
+      {isStartDisabled && (
+        <p
+          className="text-sm text-red-600 mb-2"
+          aria-live="polite" // Accessibility: Announce changes to screen readers
+        >
+          There should be at least 2 players.
+        </p>
+      )}
+      {/* Start Game button: Disabled if fewer than two players have entered their names */}
+      <Button
+        onClick={startGame}
+        disabled={isStartDisabled}
+        aria-label="Start a new game"
+      >
         Start Game
       </Button>
     </div>
