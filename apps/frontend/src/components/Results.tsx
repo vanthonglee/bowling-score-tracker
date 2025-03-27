@@ -1,4 +1,4 @@
-import { useEffect, useState, useDeferredValue } from 'react';
+import { useDeferredValue } from 'react';
 import { useGameStore } from '../store';
 import {
   Table,
@@ -9,46 +9,52 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from './ui/button';
-import { ScoreboardEntry } from './game/types';
+import useFetchScoreboard from '../hooks/useFetchScoreboard';
+import { useNavigate } from 'react-router-dom';
 
 // Results component to display the final scoreboard and winner
 const Results = () => {
   // State management using Zustand store
   const { gameId, setGameId, setCurrentFrame, setError } = useGameStore();
-  const [scores, setScores] = useState<ScoreboardEntry[]>([]); // Scoreboard data fetched from backend
-  const deferredScores = useDeferredValue(scores); // Defer rendering of scores for performance
+  const navigate = useNavigate();
 
-  // Fetch scoreboard data when the gameId changes
-  useEffect(() => {
-    const fetchScores = async () => {
-      try {
-        const res = await fetch(`http://localhost:8080/api/game/${gameId}/scoreboard`);
-        if (!res.ok) {
-          throw new Error(`Failed to fetch scoreboard: ${res.status}`);
-        }
-        const { scoreboard } = await res.json();
-        setScores(scoreboard);
-        setError(null); // Clear any previous errors
-      } catch (error) {
-        console.error('Error fetching scoreboard:', error);
-        setError('Could not load game results. Please try again.');
-      }
-    };
-    fetchScores();
-  }, [gameId, setError]);
+  // Redirect to Home if gameId is not set (game hasn't started)
+  if (!gameId) {
+    navigate('/');
+    return null;
+  }
 
-  // Determine the highest score and all winners
-  const highestScore = Math.max(...deferredScores.map(player => player.total));
-  const winners = deferredScores
-    .filter(player => player.total === highestScore)
-    .map(player => player.name);
+  // Use the custom hook to fetch the scoreboard
+  const { data, isLoading, error } = useFetchScoreboard(gameId);
 
   // Handle "New Game" button click to reset the game state
   const handleNewGame = () => {
     setGameId(null); // Reset gameId to navigate to Home
     setCurrentFrame(1); // Reset currentFrame to 1 for a new game
     setError(null); // Clear any previous errors
+    navigate('/'); // Navigate back to Home
   };
+
+  const deferredScores = useDeferredValue(data?.scoreboard);
+
+  if (isLoading) {
+    return <div>Loading results...</div>;
+  }
+
+  if (error) {
+    setError('Could not load game results. Please try again.');
+    return <div>Error loading results: {error.message}</div>;
+  }
+
+  if (!deferredScores) {
+    return <div>No results available.</div>;
+  }
+
+  // Determine the highest score and all winners
+  const highestScore = Math.max(...deferredScores.map(player => player.total));
+  const winners = deferredScores
+    .filter(player => player.total === highestScore)
+    .map(player => player.name);
 
   return (
     <div className="p-4">

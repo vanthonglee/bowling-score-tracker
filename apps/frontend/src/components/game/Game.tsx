@@ -1,17 +1,26 @@
-import { useEffect, useDeferredValue } from 'react';
-
+import { useDeferredValue, useEffect } from 'react';
 import { useGameStore } from '../../store';
 import { Button } from '../ui/button';
-
 import Scoreboard from './Scoreboard';
 import PlayerRollSelector from './PlayerRollSelector';
 import useBowlingLogic from '@/hooks/useBowlingLogic';
+import useFetchScoreboard from '@/hooks/useFetchScoreboard';
+import { useNavigate } from 'react-router-dom';
 
 // Main Game component to handle roll selection and score submission
 const Game = () => {
   // State management using Zustand store
-  const { gameId, players, currentFrame, setError, setScoreboard, scoreboard } = useGameStore();
-  const deferredScoreboard = useDeferredValue(scoreboard); // Defer rendering of scoreboard for performance
+  const { gameId, players, currentFrame, setError, setScoreboard } = useGameStore();
+  const navigate = useNavigate();
+
+  // Redirect to Home if gameId is not set (game hasn't started)
+  if (!gameId) {
+    navigate('/');
+    return null;
+  }
+
+  // Use the custom hook to fetch the scoreboard
+  const { data, isLoading, error } = useFetchScoreboard(gameId);
 
   // Use the custom hook to handle bowling logic
   const {
@@ -24,26 +33,27 @@ const Game = () => {
     isPending,
   } = useBowlingLogic();
 
-  // Fetch scoreboard data when the component mounts (initial load)
+  // Update the scoreboard in the store when data is fetched, using useEffect to avoid render-phase updates
   useEffect(() => {
-    const fetchScoreboard = async () => {
-      try {
-        const apiUrl = process.env.REACT_APP_API_URL;
-        const res = await fetch(`${apiUrl}/api/game/${gameId}/scoreboard`);
-        if (!res.ok) {
-          throw new Error(`Failed to fetch scoreboard: ${res.status}`);
-        }
-        const { scoreboard } = await res.json();
-        setScoreboard(scoreboard);
-        setError(null); // Clear any previous errors
-      } catch (error) {
-        console.error('Error fetching scoreboard:', error);
-        setError('Failed to load scoreboard. Please try again.');
-      }
-    };
+    if (data) {
+      setScoreboard(data.scoreboard);
+    }
+  }, [data, setScoreboard]);
 
-    fetchScoreboard();
-  }, [gameId, setScoreboard, setError]);
+  if (isLoading) {
+    return <div>Loading scoreboard...</div>;
+  }
+
+  if (error) {
+    setError('Failed to load scoreboard. Please try again.');
+    return <div>Error loading scoreboard: {error.message}</div>;
+  }
+
+  // Ensure scoreboard is defined before rendering
+  const scoreboard = data?.scoreboard;
+  if (!scoreboard) {
+    return <div>No scores available yet.</div>;
+  }
 
   return (
     <div className="p-4">
@@ -65,7 +75,7 @@ const Game = () => {
 
       {/* Submit Scores Button: Disabled during submission or if validation fails */}
       <Button
-        onClick={() => handleSubmit(gameId!, currentFrame, players)}
+        onClick={() => handleSubmit(gameId, currentFrame, players)}
         disabled={isSubmitDisabled(players, currentFrame) || isPending}
         aria-label="Submit scores"
       >
@@ -74,7 +84,7 @@ const Game = () => {
 
       {/* Scoreboard Section */}
       <h2 className="mt-4 text-xl">Scoreboard</h2>
-      <Scoreboard scoreboard={deferredScoreboard} currentFrame={currentFrame} />
+      <Scoreboard scoreboard={scoreboard} currentFrame={currentFrame} />
     </div>
   );
 };

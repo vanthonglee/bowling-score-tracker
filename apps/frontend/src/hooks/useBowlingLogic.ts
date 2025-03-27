@@ -1,6 +1,8 @@
-// hooks/useBowlingLogic.ts
+// frontend/hooks/useBowlingLogic.ts
 import { useState, useTransition } from 'react';
 import { useGameStore } from '../store';
+import useSubmitScores from '../hooks/useSubmitScores';
+import { useNavigate } from 'react-router-dom';
 
 // Define the structure of the scores state
 type Scores = Record<string, string[]>;
@@ -19,26 +21,26 @@ interface BowlingLogic {
 // Custom hook to handle bowling game logic
 const useBowlingLogic = (): BowlingLogic => {
   // State management using Zustand store
-  const { setCurrentFrame, setError, setScoreboard } = useGameStore();
+  const { setCurrentFrame, setError } = useGameStore();
+  const navigate = useNavigate();
   const [scores, setScores] = useState<Scores>({}); // Scores for each player (Roll 1, Roll 2, Roll 3)
   const [isPending, startTransition] = useTransition(); // For handling non-urgent state updates
 
-  // Fetch scoreboard data from the backend with error handling
-  const fetchScoreboard = async (gameId: string) => {
-    try {
-      const apiUrl = process.env.REACT_APP_API_URL;
-      const res = await fetch(`${apiUrl}/api/game/${gameId}/scoreboard`);
-      if (!res.ok) {
-        throw new Error(`Failed to fetch scoreboard: ${res.status}`);
-      }
-      const { scoreboard } = await res.json();
-      setScoreboard(scoreboard);
-      setError(null); // Clear any previous errors
-    } catch (error) {
-      console.error('Error fetching scoreboard:', error);
-      setError('Failed to load scoreboard. Please try again.');
+  // Use the custom hook for submitting scores
+  const { submitScores, isPending: isSubmitting, error } = useSubmitScores((frameNumber) => {
+    setScores({});
+    setCurrentFrame(frameNumber + 1);
+    setError(null);
+    // Navigate to Results screen after the 10th frame
+    if (frameNumber === 10) {
+      navigate('/results');
     }
-  };
+  });
+
+  // Handle error from API call
+  if (error) {
+    setError('Failed to submit scores. Please try again.');
+  }
 
   // Determine valid options for Roll 2 based on Roll 1
   const getRoll2Options = (roll1: string, currentFrame: number): string[] => {
@@ -130,47 +132,26 @@ const useBowlingLogic = (): BowlingLogic => {
 
   // Handle score submission with useTransition for better UI responsiveness
   const handleSubmit = async (gameId: string, currentFrame: number, players: string[]) => {
-    startTransition(async () => {
-      try {
-        for (const player of players) {
-          let rolls = scores[player] || ['', '', ''];
-          if (currentFrame < 10 && (rolls[0] === 'X' || rolls[0] === '10')) {
-            rolls = [rolls[0]]; // Only send Roll 1 for strikes in frames 1-9
-          } else if (currentFrame === 10) {
-            // 10th frame: Only send Roll 3 if it's a strike or spare
-            const roll1Value = rolls[0] === 'X' || rolls[0] === '10' ? 10 : parseInt(rolls[0]);
-            const roll2Value = rolls[1] === 'X' || rolls[1] === '10' ? 10 : rolls[1] === '/' ? 10 - roll1Value : parseInt(rolls[1]);
-            const roll3Options = getRoll3Options(rolls[0], rolls[1], currentFrame);
-            if (roll3Options.length === 0) {
-              // Open frame: Only send two rolls
-              rolls = [rolls[0], rolls[1]];
-            }
-          }
-          const apiUrl = process.env.REACT_APP_API_URL;
-          const res = await fetch(`${apiUrl}/api/game/${gameId}/frame/${currentFrame}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ player, rolls }),
-          });
-          if (!res.ok) {
-            throw new Error(`Failed to submit scores: ${res.status}`);
-          }
-          const data = await res.json();
-          if (!data.success) {
-            throw new Error(data.error || 'Failed to submit scores');
+    startTransition(() => {
+      // Prepare the rolls for all players in a single request
+      const rolls = players.map(player => {
+        let playerRolls = scores[player] || ['', '', ''];
+        if (currentFrame < 10 && (playerRolls[0] === 'X' || playerRolls[0] === '10')) {
+          playerRolls = [playerRolls[0]]; // Only send Roll 1 for strikes in frames 1-9
+        } else if (currentFrame === 10) {
+          // 10th frame: Only send Roll 3 if it's a strike or spare
+          const roll1Value = playerRolls[0] === 'X' || playerRolls[0] === '10' ? 10 : parseInt(playerRolls[0]);
+          const roll2Value = playerRolls[1] === 'X' || playerRolls[1] === '10' ? 10 : playerRolls[1] === '/' ? 10 - roll1Value : parseInt(playerRolls[1]);
+          const roll3Options = getRoll3Options(playerRolls[0], playerRolls[1], currentFrame);
+          if (roll3Options.length === 0) {
+            // Open frame: Only send two rolls
+            playerRolls = [playerRolls[0], playerRolls[1]];
           }
         }
-        // Reset scores and advance to the next frame
-        setScores({});
-        setCurrentFrame(currentFrame + 1);
-        setError(null); // Clear any previous errors
+        return { player, rolls: playerRolls };
+      });
 
-        // Fetch the updated scoreboard immediately after submission
-        await fetchScoreboard(gameId);
-      } catch (error) {
-        console.error('Submission error:', error);
-        setError('Failed to submit scores. Please try again.');
-      }
+      submitScores(gameId, currentFrame, rolls);
     });
   };
 
@@ -181,7 +162,7 @@ const useBowlingLogic = (): BowlingLogic => {
     getRoll3Options,
     isSubmitDisabled,
     handleSubmit,
-    isPending,
+    isPending: isSubmitting,
   };
 };
 

@@ -2,48 +2,45 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useGameStore } from '@/store';
+import useStartGame from '../hooks/useStartGame';
+import { useNavigate } from 'react-router-dom';
 
+// Home component for starting a new game
 const Home = () => {
   // State for player names input
   const [names, setNames] = useState(['', '', '', '', '']);
   // State management using Zustand store
   const { setGameId, setPlayers, setCurrentFrame, setError } = useGameStore();
+  const navigate = useNavigate();
 
   // Check if at least two players have entered their names to enable the Start Game button
   const nonEmptyNames = names.filter(name => name.trim() !== '');
   const isStartDisabled = nonEmptyNames.length < 2;
 
+  // Use the custom hook for starting a game
+  const { startGame, isPending, error } = useStartGame((gameId) => {
+    setGameId(gameId);
+    setPlayers(names.filter(name => name.trim()));
+    setCurrentFrame(1);
+    setError(null);
+    // Navigate to the Game screen after the mutation succeeds
+    navigate('/game');
+  });
+
   // Handle starting a new game
-  const startGame = async () => {
+  const handleStartGame = () => {
     const players = names.filter(name => name.trim());
     if (players.length < 2) {
       setError('Please enter at least two player names');
       return;
     }
-
-    try {
-      // Use the environment variable for the backend API URL
-      const apiUrl = process.env.REACT_APP_API_URL; 
-      const res = await fetch(`${apiUrl}/api/game/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ players }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Failed to start game: ${res.status}`);
-      }
-
-      const { gameId } = await res.json();
-      setGameId(gameId);
-      setPlayers(players);
-      setCurrentFrame(1); // Reset currentFrame to 1 for a new game
-      setError(null); // Clear any previous errors
-    } catch (error) {
-      console.error('Error starting game:', error);
-      setError('Couldn’t start the game. Please try again.');
-    }
+    startGame(players);
   };
+
+  // Handle error from API call
+  if (error) {
+    setError('Couldn’t start the game. Please try again.');
+  }
 
   return (
     <div className="p-4">
@@ -73,13 +70,13 @@ const Home = () => {
           There should be at least 2 players.
         </p>
       )}
-      {/* Start Game button: Disabled if fewer than two players have entered their names */}
+      {/* Start Game button: Disabled if fewer than two players have entered their names or during mutation */}
       <Button
-        onClick={startGame}
-        disabled={isStartDisabled}
+        onClick={handleStartGame}
+        disabled={isStartDisabled || isPending}
         aria-label="Start a new game"
       >
-        Start Game
+        {isPending ? 'Starting...' : 'Start Game'}
       </Button>
     </div>
   );

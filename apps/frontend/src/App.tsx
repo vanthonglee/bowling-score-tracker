@@ -1,18 +1,20 @@
-// App.tsx
-import { useGameStore } from './store';
 import Home from './components/Home';
 import Game from './components/game/Game';
 import Results from './components/Results';
 import ErrorBoundary from './components/ErrorBoundary';
 
-const App = () => {
-  const gameId = useGameStore(state => state.gameId);
-  const currentFrame = useGameStore(state => state.currentFrame);
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-  // Navigation logic based on game state
-  if (!gameId) return <Home />;
-  if (currentFrame <= 10) return <Game />;
-  return <Results />;
+const App = () => {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/game" element={<Game />} />
+        <Route path="/results" element={<Results />} />
+      </Routes>
+    </Router>
+  );
 };
 
 // Wrap the App in an ErrorBoundary to catch and display errors

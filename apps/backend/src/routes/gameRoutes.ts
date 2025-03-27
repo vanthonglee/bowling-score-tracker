@@ -7,16 +7,15 @@ import { Game, Player, ApiError } from '../types';
 // In-memory store for games (temporary until a database is added)
 const games: Record<string, Game> = {};
 
-interface SubmitScoreRequest extends Request {
-  body: {
-    player: string;
-    rolls: string[];
-  };
-}
-
 interface StartGameRequest extends Request {
   body: {
     players: string[];
+  };
+}
+
+interface SubmitScoresRequest extends Request {
+  body: {
+    rolls: { player: string; rolls: string[] }[]; // Array of player rolls for the frame
   };
 }
 
@@ -25,8 +24,8 @@ const router = Router();
 // Start a new game
 router.post('/start', (req: StartGameRequest, res: Response) => {
   const { players } = req.body;
-  if (!players || players.length < 1 || players.length > 5) {
-    throw new ApiError(400, 'Invalid number of players');
+  if (!players || players.length < 2 || players.length > 5) {
+    throw new ApiError(400, 'Invalid number of players. Must be between 2 and 5.');
   }
 
   try {
@@ -41,13 +40,13 @@ router.post('/start', (req: StartGameRequest, res: Response) => {
   }
 });
 
-// Submit scores for a frame
-router.post('/:gameId/frame/:frameNumber', (req: SubmitScoreRequest, res: Response) => {
+// Submit scores for all players in a frame
+router.post('/:gameId/frame/:frameNumber/scores', (req: SubmitScoresRequest, res: Response) => {
   const { gameId, frameNumber } = req.params;
-  const { player, rolls } = req.body;
+  const { rolls } = req.body;
 
-  if (!player || !rolls || !Array.isArray(rolls)) {
-    throw new ApiError(400, 'Invalid request: player and rolls are required');
+  if (!rolls || !Array.isArray(rolls)) {
+    throw new ApiError(400, 'Invalid request: rolls array is required');
   }
 
   const frameNum = parseInt(frameNumber);
@@ -58,12 +57,19 @@ router.post('/:gameId/frame/:frameNumber', (req: SubmitScoreRequest, res: Respon
   const game = games[gameId];
   if (!game) throw new ApiError(404, 'Game not found');
 
-  const playerObj = game.players.find((p: Player) => p.name === player);
-  if (!playerObj) throw new ApiError(404, 'Player not found');
+  // Validate and store rolls for each player
+  try {
+    rolls.forEach(({ player, rolls: playerRolls }) => {
+      const playerObj = game.players.find((p: Player) => p.name === player);
+      if (!playerObj) throw new ApiError(404, `Player ${player} not found`);
 
-  const parsedRolls = parseRolls(rolls, frameNum);
-  playerObj.frames[frameNum - 1] = { rolls: parsedRolls };
-  res.json({ success: true });
+      const parsedRolls = parseRolls(playerRolls, frameNum);
+      playerObj.frames[frameNum - 1] = { rolls: parsedRolls };
+    });
+    res.json({ success: true });
+  } catch (error) {
+    throw error instanceof ApiError ? error : new ApiError(400, 'Failed to submit scores');
+  }
 });
 
 // Get the scoreboard for a game
