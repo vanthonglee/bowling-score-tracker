@@ -1,74 +1,83 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useDeferredValue } from 'react';
 import { useGameStore } from '../store';
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
 import { Button } from './ui/button';
+import { ScoreboardEntry } from './game/types';
 
-interface ScoreboardEntry {
-  name: string;
-  frames: { rolls: number[]; display: string; cumulativeTotal: number | null }[];
-  total: number;
-}
-
+// Results component to display the final scoreboard and winner
 const Results = () => {
-  const { gameId, setGameId, setCurrentFrame } = useGameStore();
-  const [scores, setScores] = useState<ScoreboardEntry[]>([]);
+  // State management using Zustand store
+  const { gameId, setGameId, setCurrentFrame, setError } = useGameStore();
+  const [scores, setScores] = useState<ScoreboardEntry[]>([]); // Scoreboard data fetched from backend
+  const deferredScores = useDeferredValue(scores); // Defer rendering of scores for performance
 
+  // Fetch scoreboard data when the gameId changes
   useEffect(() => {
     const fetchScores = async () => {
       try {
         const res = await fetch(`http://localhost:8080/api/game/${gameId}/scoreboard`);
         if (!res.ok) {
-          throw new Error('Failed to fetch scoreboard');
+          throw new Error(`Failed to fetch scoreboard: ${res.status}`);
         }
         const { scoreboard } = await res.json();
         setScores(scoreboard);
+        setError(null); // Clear any previous errors
       } catch (error) {
         console.error('Error fetching scoreboard:', error);
-        alert('Could not load game results. Please try again.');
+        setError('Could not load game results. Please try again.');
       }
     };
     fetchScores();
-  }, [gameId]);
+  }, [gameId, setError]);
 
-  // Determine the winner based on the highest total score
-  const winner = scores.reduce((prev, curr) => (curr.total > prev.total ? curr : prev), scores[0] || { total: 0, name: '' });
+  // Determine the highest score and all winners
+  const highestScore = Math.max(...deferredScores.map(player => player.total));
+  const winners = deferredScores
+    .filter(player => player.total === highestScore)
+    .map(player => player.name);
 
+  // Handle "New Game" button click to reset the game state
   const handleNewGame = () => {
     setGameId(null); // Reset gameId to navigate to Home
     setCurrentFrame(1); // Reset currentFrame to 1 for a new game
+    setError(null); // Clear any previous errors
   };
 
   return (
     <div className="p-4">
+      {/* Page title */}
       <h1 className="text-2xl mb-4">Game Results</h1>
 
-      {/* Updated Scoreboard */}
+      {/* Scoreboard Section */}
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
+              {/* Player column with compact width */}
               <TableHead className="w-[100px] text-center">Player</TableHead>
+              {/* Frame columns */}
               {Array.from({ length: 10 }, (_, i) => i + 1).map(frame => (
                 <TableHead key={frame} className="text-center">
                   {frame}
                 </TableHead>
               ))}
+              {/* Total column at the right end */}
               <TableHead className="text-center">Total</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {scores.map(player => (
+            {deferredScores.map(player => (
               <TableRow key={player.name}>
+                {/* Player name with compact width */}
                 <TableCell className="w-[100px]">{player.name}</TableCell>
+                {/* Frame cells with rolls and cumulative totals */}
                 {Array.from({ length: 10 }, (_, i) => i + 1).map(frame => {
                   const frameData = player.frames[frame - 1];
                   return (
@@ -82,8 +91,11 @@ const Results = () => {
                     </TableCell>
                   );
                 })}
-                <TableCell className={`text-center ${player.name === winner.name ? 'font-bold text-green-600' : ''}`}>
-                  {player.total} {player.name === winner.name ? '(Winner)' : ''}
+                {/* Total score for the player, highlighted if winner */}
+                <TableCell
+                  className={`text-center ${winners.includes(player.name) ? 'font-bold text-green-600' : ''}`}
+                >
+                  {player.total} {winners.includes(player.name) ? '(Winner)' : ''}
                 </TableCell>
               </TableRow>
             ))}
@@ -92,7 +104,7 @@ const Results = () => {
       </div>
 
       {/* New Game Button */}
-      <Button className="mt-4" onClick={handleNewGame}>
+      <Button className="mt-4" onClick={handleNewGame} aria-label="Start a new game">
         New Game
       </Button>
     </div>
