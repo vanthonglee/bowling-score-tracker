@@ -16,7 +16,7 @@ The **Bowling Score Tracker** is a web application designed to help multiple pla
 ## Tech Stack
 - **Monorepo Tool:** Turbo, Yarn
 - **Frontend:** React, TypeScript, Rsbuild, Tailwind CSS, Shadcn UI, Zustand (state management)
-- **Backend:** Node.js, Express, TypeScript
+- **Backend:** Node.js, Express, TypeScript, In-Memory Storage
 - **Containerization:** Docker
 - **CI:** Github Actions
 - **Deployment:** Docker, Nginx, AWS EKS(PENDING), AWS S3(PENDING), AWS Cloudfront(PENDING)
@@ -165,6 +165,7 @@ https://github.com/user-attachments/assets/d870ce2c-838b-4445-bb5f-e08396ab5d12
 
 # TODO
 
+- [ ] Integrating Persistent Database (NoSQL)
 - [ ] Update Code Coverage > 80, cover all important scenarios 
 - [ ] Implement DevSecOps pipelines(CI and CD) that make the system scalable, reliable and secure
 
