@@ -169,5 +169,6 @@ https://github.com/user-attachments/assets/d870ce2c-838b-4445-bb5f-e08396ab5d12
 - [ ] Implement DevSecOps pipelines(CI and CD) that make the system scalable, reliable and secure
 
 # Note and Warning
-** I leverage the development speed by using AI tool. 
+
+**I leverage the development speed by using AI tool. 
 I am aware that I cannot depend on it, but recklessly validate its suggestion by critical thinking and analysis and my own experience.**    
