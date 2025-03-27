@@ -1,4 +1,3 @@
-// components/PlayerRollSelector.tsx
 import RollSelector from './RollSelector';
 import { PlayerRollSelectorProps } from './types';
 

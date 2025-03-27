@@ -1,12 +1,9 @@
-// types.ts
-// Define the structure of a scoreboard entry for type safety
 export interface ScoreboardEntry {
   name: string; // Player name
   frames: { rolls: number[]; display: string; cumulativeTotal: number | null }[]; // Frame data with rolls, display string, and cumulative total
   total: number; // Total score for the player
 }
 
-// Props for the RollSelector component to ensure type safety
 export interface RollSelectorProps {
   player: string; // Player name for identifying the score entry
   rollIndex: number; // Index of the roll (0 for Roll 1, 1 for Roll 2, 2 for Roll 3)
@@ -15,7 +12,6 @@ export interface RollSelectorProps {
   onSelect: (value: string) => void; // Callback to handle selection
 }
 
-// Props for the PlayerRollSelector component
 export interface PlayerRollSelectorProps {
   player: string; // Player name
   scores: Record<string, string[]>; // Current scores for all players
@@ -25,7 +21,6 @@ export interface PlayerRollSelectorProps {
   currentFrame: number; // Current frame number
 }
 
-// Props for the Scoreboard component
 export interface ScoreboardProps {
   scoreboard: ScoreboardEntry[]; // Scoreboard data for all players
   currentFrame: number; // Current frame number for highlighting

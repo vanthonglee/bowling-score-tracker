@@ -4,6 +4,10 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import gameRoutes from './routes/gameRoutes';
 import { ApiError } from './types';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 // Initialize Express app
 const app = express();
@@ -12,7 +16,7 @@ const app = express();
 app.use(express.json());
 
 // Security: Configure CORS to allow requests only from the frontend
-app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(cors({ origin: process.env.FRONTEND_URL }));
 
 // Security: Rate limiting to prevent abuse
 const limiter = rateLimit({

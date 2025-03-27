@@ -19,7 +19,8 @@ const Home = () => {
     }
 
     try {
-      const res = await fetch('http://localhost:8080/api/game/start', {
+      const apiUrl = process.env.REACT_APP_API_URL;
+      const res = await fetch(`${apiUrl}/api/game/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ players }),

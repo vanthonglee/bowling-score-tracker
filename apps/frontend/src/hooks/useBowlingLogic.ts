@@ -26,7 +26,8 @@ const useBowlingLogic = (): BowlingLogic => {
   // Fetch scoreboard data from the backend with error handling
   const fetchScoreboard = async (gameId: string) => {
     try {
-      const res = await fetch(`http://localhost:8080/api/game/${gameId}/scoreboard`);
+      const apiUrl = process.env.REACT_APP_API_URL;
+      const res = await fetch(`${apiUrl}/api/game/${gameId}/scoreboard`);
       if (!res.ok) {
         throw new Error(`Failed to fetch scoreboard: ${res.status}`);
       }
@@ -145,7 +146,8 @@ const useBowlingLogic = (): BowlingLogic => {
               rolls = [rolls[0], rolls[1]];
             }
           }
-          const res = await fetch(`http://localhost:8080/api/game/${gameId}/frame/${currentFrame}`, {
+          const apiUrl = process.env.REACT_APP_API_URL;
+          const res = await fetch(`${apiUrl}/api/game/${gameId}/frame/${currentFrame}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ player, rolls }),

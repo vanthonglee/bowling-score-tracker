@@ -1,4 +1,4 @@
-import { useState, useEffect, useTransition, useDeferredValue } from 'react';
+import { useEffect, useDeferredValue } from 'react';
 
 import { useGameStore } from '../../store';
 import { Button } from '../ui/button';
@@ -28,7 +28,8 @@ const Game = () => {
   useEffect(() => {
     const fetchScoreboard = async () => {
       try {
-        const res = await fetch(`http://localhost:8080/api/game/${gameId}/scoreboard`);
+        const apiUrl = process.env.REACT_APP_API_URL;
+        const res = await fetch(`${apiUrl}/api/game/${gameId}/scoreboard`);
         if (!res.ok) {
           throw new Error(`Failed to fetch scoreboard: ${res.status}`);
         }
