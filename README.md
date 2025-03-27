@@ -79,7 +79,7 @@ sh scripts/docker-down.sh
 
 # Deployment Strategy(High-Level)
 ## Option 1 CI/CD (DevSecOps), S3, CloudFront, and Related Technologies
-![alt text](image-1.png)
+![alt text](./screenshots/image-1.png)
 ### Flow
 1. Code is committed to the Git Repository.
 
