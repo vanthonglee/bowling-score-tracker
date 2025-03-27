@@ -1,4 +1,5 @@
-// services/gameService.ts
+import { ApiError } from '../types';
+
 // Service to handle game logic and validation
 
 // Parse and validate rolls for a frame
@@ -8,7 +9,7 @@ export const parseRolls = (rolls: string[], frame: number): number[] => {
 
   const maxRolls = frame < 10 ? 2 : 3;
   if (cleanedRolls.length === 0 || cleanedRolls.length > maxRolls) {
-    throw new Error(`Invalid number of rolls for frame ${frame}: expected up to ${maxRolls} rolls, got ${cleanedRolls.length}`);
+    throw new ApiError(400, `Invalid number of rolls for frame ${frame}: expected up to ${maxRolls} rolls, got ${cleanedRolls.length}`);
   }
 
   for (let i = 0; i < cleanedRolls.length; i++) {
@@ -17,13 +18,13 @@ export const parseRolls = (rolls: string[], frame: number): number[] => {
       parsed.push(10);
     } else if (roll === '/' && i > 0) {
       if (parsed[i - 1] === 10) {
-        throw new Error('Cannot have a spare after a strike');
+        throw new ApiError(400, 'Cannot have a spare after a strike');
       }
       parsed.push(10 - parsed[i - 1]);
     } else {
       const num = parseInt(roll);
       if (isNaN(num) || num < 0 || num > 10) {
-        throw new Error(`Invalid roll value: ${roll}`);
+        throw new ApiError(400, `Invalid roll value: ${roll}`);
       }
       parsed.push(num);
     }
@@ -35,31 +36,31 @@ export const parseRolls = (rolls: string[], frame: number): number[] => {
     }
     if (parsed.length === 2) {
       if (parsed[0] === 10) {
-        throw new Error('A strike in frames 1-9 should only have one roll');
+        throw new ApiError(400, 'A strike in frames 1-9 should only have one roll');
       }
       if (parsed[0] + parsed[1] > 10 && parsed[1] !== (10 - parsed[0])) {
-        throw new Error(`Invalid rolls: ${parsed[0]} + ${parsed[1]} exceeds 10 without a spare`);
+        throw new ApiError(400, `Invalid rolls: ${parsed[0]} + ${parsed[1]} exceeds 10 without a spare`);
       }
       return parsed; // Spare or open
     }
-    throw new Error('Invalid rolls for frame: expected 1 roll for a strike or 2 rolls for spare/open');
+    throw new ApiError(400, 'Invalid rolls for frame: expected 1 roll for a strike or 2 rolls for spare/open');
   } else {
     // 10th frame validation
     if (parsed.length === 2) {
       if (parsed[0] === 10 || (parsed[0] + parsed[1] === 10 && parsed[1] !== 0)) {
-        throw new Error('10th frame with a strike or spare requires 3 rolls');
+        throw new ApiError(400, '10th frame with a strike or spare requires 3 rolls');
       }
       if (parsed[0] + parsed[1] < 10) {
         return parsed; // Open frame, 2 rolls are fine
       }
-      throw new Error(`Invalid rolls in 10th frame: ${parsed[0]} + ${parsed[1]} exceeds 10 without a spare`);
+      throw new ApiError(400, `Invalid rolls in 10th frame: ${parsed[0]} + ${parsed[1]} exceeds 10 without a spare`);
     }
     if (parsed.length === 3) {
       if (parsed[0] === 10 || (parsed[0] + parsed[1] === 10 && parsed[1] !== 0)) {
         return parsed; // Strike or spare, 3 rolls are correct
       }
-      throw new Error('Third roll in 10th frame is only allowed after a strike or spare');
+      throw new ApiError(400, 'Third roll in 10th frame is only allowed after a strike or spare');
     }
-    throw new Error('Invalid rolls for 10th frame: expected 2 rolls for an open frame or 3 rolls for a strike/spare');
+    throw new ApiError(400, 'Invalid rolls for 10th frame: expected 2 rolls for an open frame or 3 rolls for a strike/spare');
   }
 };

@@ -1,20 +1,9 @@
-// services/scoreService.ts
+import { Frame, CalculatedFrame, CalculatedPlayerScore } from '../types';
+
 // Service to handle score calculation logic
 
-// Define the structure of a frame for internal use
-interface Frame {
-  rolls: number[];
-}
-
-// Define the structure of the calculated frame result
-interface CalculatedFrame {
-  rolls: number[];
-  display: string;
-  cumulativeTotal: number | null;
-}
-
 // Calculate the score for a player based on their frames
-export const calculatePlayerScore = (frames: Frame[]): { frames: CalculatedFrame[]; total: number } => {
+export const calculatePlayerScore = (frames: Frame[]): CalculatedPlayerScore => {
   const resultFrames: CalculatedFrame[] = [];
   let total = 0;
   const flatRolls = frames.flatMap(f => f?.rolls || []);

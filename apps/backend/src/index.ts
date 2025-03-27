@@ -1,8 +1,9 @@
-// index.ts
-import express from 'express';
+// backend/index.ts
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import gameRoutes from './routes/gameRoutes';
+import { ApiError } from './types';
 
 // Initialize Express app
 const app = express();
@@ -16,12 +17,23 @@ app.use(cors({ origin: 'http://localhost:3000' }));
 // Security: Rate limiting to prevent abuse
 const limiter = rateLimit({
   windowMs: 2 * 60 * 60 * 1000, // 2 hours
-  max: 1000, // Limit each IP to 100 requests per windowMs
+  max: 1000, // Limit each IP to 1000 requests per windowMs
 });
 app.use(limiter);
 
 // Mount game routes
 app.use('/api/game', gameRoutes);
+
+// Error handling middleware
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof ApiError) {
+    console.error(`API Error [${err.status}]: ${err.message}`);
+    res.status(err.status).json({ error: err.message });
+  } else {
+    console.error('Unexpected Error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // Start the server
 const PORT = process.env.PORT || 8080;
