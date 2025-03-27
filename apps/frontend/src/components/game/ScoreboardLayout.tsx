@@ -4,16 +4,18 @@ import { useNavigate } from 'react-router-dom';
 import Scoreboard from './Scoreboard';
 import { useGameStore } from '@/store';
 import useFetchScoreboard from '@/hooks/useFetchScoreboard';
+import { ScoreboardEntry } from './types';
 
 // Props for the ScoreboardLayout component
 interface ScoreboardLayoutProps {
   title: string; // Title to display (e.g., "Frame X" or "Game Results")
   currentFrame?: number; // Current frame for highlighting (optional, used in Game screen)
-  children?: React.ReactNode; // Additional content (e.g., roll selectors, buttons)
+  winners?: string[]; // List of winner names for highlighting (optional, used in Results screen)
+  children?: (props: { scoreboard: ScoreboardEntry[] | undefined }) => React.ReactNode; // Render prop to pass scoreboard data to children
 }
 
 // Shared layout component for displaying the scoreboard with loading and error states
-const ScoreboardLayout = ({ title, currentFrame, children }: ScoreboardLayoutProps) => {
+const ScoreboardLayout = ({ title, currentFrame, winners, children }: ScoreboardLayoutProps) => {
   // State management using Zustand store
   const { gameId, setError, setScoreboard } = useGameStore();
   const navigate = useNavigate();
@@ -55,11 +57,11 @@ const ScoreboardLayout = ({ title, currentFrame, children }: ScoreboardLayoutPro
       <h1 className="text-xl mb-4">{title}</h1>
 
       {/* Additional content (e.g., roll selectors, buttons) */}
-      {children}
+      {children && children({ scoreboard })}
 
       {/* Scoreboard Section */}
       <h2 className="mt-4 text-xl">Scoreboard</h2>
-      <Scoreboard scoreboard={scoreboard} currentFrame={currentFrame} />
+      <Scoreboard scoreboard={scoreboard} currentFrame={currentFrame} winners={winners} />
     </div>
   );
 };

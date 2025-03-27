@@ -1,8 +1,8 @@
 // frontend/hooks/useBowlingLogic.ts
 import { useState, useTransition } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store';
 import useSubmitScores from '../hooks/useSubmitScores';
-import { useNavigate } from 'react-router-dom';
 
 // Define the structure of the scores state
 type Scores = Record<string, string[]>;
