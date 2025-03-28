@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import RollSelector from './RollSelector';
 import { PlayerRollSelectorProps } from './types';
 
@@ -13,9 +14,23 @@ const PlayerRollSelector: React.FC<PlayerRollSelectorProps> = ({
   const roll1 = scores[player]?.[0] || '';
   const roll2 = scores[player]?.[1] || '';
   const roll3 = scores[player]?.[2] || '';
+  const roll1Options = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'X'];
+
+  // Reset Roll 2 and Roll 3 when Roll 1 changes to a strike in frames 1-9
+  useEffect(() => {
+    if (currentFrame < 10 && (roll1 === 'X' || roll1 === '10')) {
+      // Only update if Roll 2 or Roll 3 is not already empty to avoid infinite loop
+      if (roll2 !== '' || roll3 !== '') {
+        setScores(prevScores => ({
+          ...prevScores,
+          [player]: [roll1, '', ''],
+        }));
+      }
+    }
+  }, [roll1, currentFrame, player]); // Removed scores and setScores from dependencies
+
   const roll2Options = getRoll2Options(roll1, currentFrame);
   const roll3Options = getRoll3Options(roll1, roll2, currentFrame);
-  const roll1Options = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'X'];
 
   return (
     <div className="mb-4">

@@ -3,6 +3,7 @@ import { useState, useTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store';
 import useSubmitScores from '../hooks/useSubmitScores';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Define the structure of the scores state
 type Scores = Record<string, string[]>;
@@ -18,28 +19,37 @@ interface BowlingLogic {
   isPending: boolean; // Flag to indicate if submission is in progress
 }
 
-// Custom hook to handle bowling game logic
+/**
+ * Custom hook to handle bowling game logic, including score submission and roll validation.
+ * @returns An object containing the scores state, roll options, and submission logic.
+ */
 const useBowlingLogic = (): BowlingLogic => {
   // State management using Zustand store
   const { setCurrentFrame, setError } = useGameStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [scores, setScores] = useState<Scores>({}); // Scores for each player (Roll 1, Roll 2, Roll 3)
   const [isPending, startTransition] = useTransition(); // For handling non-urgent state updates
 
   // Use the custom hook for submitting scores
-  const { submitScores, isPending: isSubmitting, error } = useSubmitScores((frameNumber) => {
+  const { submitScores, isPending: isSubmitting, error } = useSubmitScores(async (frameNumber) => {
     setScores({});
     setCurrentFrame(frameNumber + 1);
     setError(null);
-    // Navigate to Results screen after the 10th frame
+
+    // After the 10th frame, fetch the latest scoreboard before navigating
     if (frameNumber === 10) {
+      // Invalidate and refetch the scoreboard query
+      await queryClient.invalidateQueries({ queryKey: ['scoreboard'] });
+      // Wait for the scoreboard to be refetched and updated in the store
+      await queryClient.refetchQueries({ queryKey: ['scoreboard'] });
       navigate('/results');
     }
   });
 
   // Handle error from API call
   if (error) {
-    setError('Failed to submit scores. Please try again.');
+    setError(error.message || 'Failed to submit scores. Please try again.');
   }
 
   // Determine valid options for Roll 2 based on Roll 1
@@ -133,7 +143,7 @@ const useBowlingLogic = (): BowlingLogic => {
   // Handle score submission with useTransition for better UI responsiveness
   const handleSubmit = async (gameId: string, currentFrame: number, players: string[]) => {
     startTransition(() => {
-      // Prepare the rolls for all players in a single request
+      // Prepare the rolls for all players in a single request, cleaning up invalid rolls
       const rolls = players.map(player => {
         let playerRolls = scores[player] || ['', '', ''];
         if (currentFrame < 10 && (playerRolls[0] === 'X' || playerRolls[0] === '10')) {
@@ -148,7 +158,7 @@ const useBowlingLogic = (): BowlingLogic => {
             playerRolls = [playerRolls[0], playerRolls[1]];
           }
         }
-        return { player, rolls: playerRolls };
+        return { player, rolls: playerRolls.filter(roll => roll !== '') }; // Remove empty rolls
       });
 
       submitScores(gameId, currentFrame, rolls);

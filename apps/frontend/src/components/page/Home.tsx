@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useGameStore } from '@/store';
-import useStartGame from '../hooks/useStartGame';
+import useStartGame from '../../hooks/useStartGame';
 import { useNavigate } from 'react-router-dom';
 
 // Home component for starting a new game

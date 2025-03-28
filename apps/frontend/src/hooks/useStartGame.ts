@@ -1,21 +1,27 @@
 import { startGame } from '@/lib/api';
 import { useMutation } from '@tanstack/react-query';
 
-// Define the return type of the custom hook
-interface UseStartGame {
-  startGame: (players: string[]) => void;
-  isPending: boolean;
-  error: Error | null;
+interface UseStartGameResult {
+  startGame: (players: string[]) => void; // Function to start a new game
+  isPending: boolean; // Loading state
+  error: Error | null; // Error state
 }
 
-// Custom hook to handle starting a new game with React Query
-const useStartGame = (onSuccess?: (gameId: string) => void): UseStartGame => {
+/**
+ * Custom hook to start a new game.
+ * @param onSuccess - Callback to run when the game starts successfully, receiving the gameId.
+ * @returns An object containing the startGame function, loading state, and error state.
+ */
+const useStartGame = (onSuccess?: (gameId: string) => void): UseStartGameResult => {
   const mutation = useMutation({
-    mutationFn: (players: string[]) => startGame(players),
+    mutationFn: (players: string[]) => startGame({ players }), // Function to start a new game
     onSuccess: (data) => {
       if (onSuccess) {
         onSuccess(data.gameId);
       }
+    },
+    onError: (error: Error) => {
+      console.error('Failed to start game:', error.message);
     },
   });
 

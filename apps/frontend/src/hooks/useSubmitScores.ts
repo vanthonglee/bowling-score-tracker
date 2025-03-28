@@ -1,26 +1,39 @@
 import { submitScores } from '@/lib/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-// Define the return type of the custom hook
-interface UseSubmitScores {
-  submitScores: (gameId: string, frameNumber: number, rolls: { player: string; rolls: string[] }[]) => void;
-  isPending: boolean;
-  error: Error | null;
+interface SubmitScoresVariables {
+  gameId: string;
+  frameNumber: number;
+  rolls: { player: string; rolls: string[] }[];
 }
 
-// Custom hook to handle submitting scores with React Query
-const useSubmitScores = (onSuccess?: (frameNumber: number) => void): UseSubmitScores => {
+// Define the return type of the hook
+interface UseSubmitScoresResult {
+  submitScores: (gameId: string, frameNumber: number, rolls: { player: string; rolls: string[] }[]) => void; // Function to submit scores
+  isPending: boolean; // Loading state
+  error: Error | null; // Error state
+}
+
+/**
+ * Custom hook to submit scores for a frame.
+ * @param onSuccess - Optional callback to run when scores are submitted successfully, receiving the frameNumber.
+ * @returns An object containing the submitScores function, loading state, and error state.
+ */
+const useSubmitScores = (onSuccess?: (frameNumber: number) => Promise<void>): UseSubmitScoresResult => {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: ({ gameId, frameNumber, rolls }: { gameId: string; frameNumber: number; rolls: { player: string; rolls: string[] }[] }) =>
-      submitScores(gameId, frameNumber, rolls),
-    onSuccess: (_, variables) => {
+    mutationFn: ({ gameId, frameNumber, rolls }: SubmitScoresVariables) =>
+      submitScores(gameId, frameNumber, { rolls }), // Function to submit scores
+    onSuccess: async (_, variables) => {
       // Invalidate the scoreboard query to refetch the updated data
-      queryClient.invalidateQueries({ queryKey: ['scoreboard', variables.gameId] });
+      await queryClient.invalidateQueries({ queryKey: ['scoreboard', variables.gameId] });
       if (onSuccess) {
-        onSuccess(variables.frameNumber);
+        await onSuccess(variables.frameNumber);
       }
+    },
+    onError: (error: Error) => {
+      console.error('Failed to submit scores:', error.message);
     },
   });
 

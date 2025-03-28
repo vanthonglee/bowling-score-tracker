@@ -2,26 +2,28 @@ import { ScoreboardEntry } from '@/components/game/types';
 import { fetchScoreboard } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 
-// Define the return type of the custom hook
-interface UseFetchScoreboard {
-  data: { scoreboard: ScoreboardEntry[] } | undefined;
-  isLoading: boolean;
-  error: Error | null;
+// Define the return type of the hook
+interface UseFetchScoreboardResult {
+  data: { scoreboard: ScoreboardEntry[] } | undefined; // Scoreboard data
+  isLoading: boolean; // Loading state
+  error: Error | null; // Error state
 }
 
-// Custom hook to handle fetching the scoreboard with React Query
-const useFetchScoreboard = (gameId: string): UseFetchScoreboard => {
-  const query = useQuery({
-    queryKey: ['scoreboard', gameId],
-    queryFn: () => fetchScoreboard(gameId),
+/**
+ * Custom hook to fetch the scoreboard for a given game.
+ * @param gameId - The ID of the game to fetch the scoreboard for.
+ * @returns An object containing the scoreboard data, loading state, and error state.
+ */
+const useFetchScoreboard = (gameId: string): UseFetchScoreboardResult => {
+  return useQuery({
+    queryKey: ['scoreboard', gameId], // Unique key for caching
+    queryFn: () => fetchScoreboard(gameId), // Function to fetch the scoreboard
     enabled: !!gameId, // Only fetch if gameId is defined
+    retry: false, // Disable retries to prevent infinite loops on failure
+    onError: (error: Error) => {
+      console.error('Failed to fetch scoreboard:', error.message);
+    },
   });
-
-  return {
-    data: query.data,
-    isLoading: query.isLoading,
-    error: query.error,
-  };
 };
 
 export default useFetchScoreboard;

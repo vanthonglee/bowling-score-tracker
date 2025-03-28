@@ -1,6 +1,6 @@
-import Home from './components/Home';
-import Game from './components/game/Game';
-import Results from './components/Results';
+import Home from './components/page/Home';
+import Game from './components/page/Game';
+import Results from './components/page/Results';
 import ErrorBoundary from './components/ErrorBoundary';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import RootLayout from './components/layout/RootLayout';
