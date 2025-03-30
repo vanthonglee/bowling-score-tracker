@@ -1,3 +1,4 @@
+// apps/backend/src/index.ts
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
@@ -14,35 +15,24 @@ const app = express();
 // Middleware for parsing JSON requests
 app.use(express.json());
 
-// CORS configuration
-const allowedOrigins = [
-  'https://bowling-score-tracker-frontend.vercel.app', // Frontend URL
-  'http://localhost:3000', // Local development URL
-];
-
-// Dynamically set Access-Control-Allow-Origin based on the request's origin
+// CORS configuration with wildcard for debugging
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (e.g., Postman, curl)
-      if (!origin) return callback(null, true);
-
-      // Check if the origin is in the allowed list
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      // If the origin is not allowed, return an error
-      return callback(new Error('Not allowed by CORS'), false);
-    },
-    methods: ['GET', 'POST', 'OPTIONS'], // Explicitly allow methods
-    allowedHeaders: ['Content-Type'], // Allow specific headers
-    credentials: true, // Allow credentials if needed
+    origin: '*', // Temporarily allow all origins
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type'],
+    credentials: true,
   })
 );
 
 // Handle preflight OPTIONS requests
-app.options('*', cors()); // Ensure OPTIONS requests are handled
+app.options('*', (req: Request, res: Response) => {
+  console.log('Received OPTIONS request:', req.headers.origin);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.status(204).send();
+});
 
 // Security: Rate limiting to prevent abuse
 const limiter = rateLimit({
@@ -56,6 +46,7 @@ app.use('/api/game', gameRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error(`Error in request to ${req.url}:`, err);
   if (err instanceof ApiError) {
     console.error(`API Error [${err.status}]: ${err.message}`);
     res.status(err.status).json({ error: err.message });
