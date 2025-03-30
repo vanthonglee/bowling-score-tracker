@@ -16,32 +16,32 @@ const app = express();
 app.use(express.json());
 
 // CORS configuration
-app.use(
-  cors({
-    origin: '*', // Use wildcard for now to rule out origin issues
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type'],
-    credentials: true,
-  })
-);
+// app.use(
+//   cors({
+//     origin: '*', // Use wildcard for now to rule out origin issues
+//     methods: ['GET', 'POST', 'OPTIONS'],
+//     allowedHeaders: ['Content-Type'],
+//     credentials: true,
+//   })
+// );
 
-// Handle preflight OPTIONS requests
-app.options('*', (req: Request, res: Response) => {
-  try {
-    console.log('Handling OPTIONS request for:', req.url);
-    console.log('Origin:', req.headers.origin);
-    console.log('Headers:', req.headers);
+// // Handle preflight OPTIONS requests
+// app.options('*', (req: Request, res: Response) => {
+//   try {
+//     console.log('Handling OPTIONS request for:', req.url);
+//     console.log('Origin:', req.headers.origin);
+//     console.log('Headers:', req.headers);
 
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.status(204).send();
-  } catch (error) {
-    console.error('Error in OPTIONS handler:', error);
-    res.status(500).send('Internal Server Error in OPTIONS');
-  }
-});
+//     res.setHeader('Access-Control-Allow-Origin', '*');
+//     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+//     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+//     res.setHeader('Access-Control-Allow-Credentials', 'true');
+//     res.status(204).send();
+//   } catch (error) {
+//     console.error('Error in OPTIONS handler:', error);
+//     res.status(500).send('Internal Server Error in OPTIONS');
+//   }
+// });
 
 // Security: Rate limiting to prevent abuse
 const limiter = rateLimit({
