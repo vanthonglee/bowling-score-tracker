@@ -1,4 +1,3 @@
-// backend/index.ts
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
@@ -15,8 +14,35 @@ const app = express();
 // Middleware for parsing JSON requests
 app.use(express.json());
 
-// Security: Configure CORS to allow requests only from the frontend
-app.use(cors({ origin: process.env.FRONTEND_URL }));
+// CORS configuration
+const allowedOrigins = [
+  'https://bowling-score-tracker-frontend.vercel.app', // Frontend URL
+  'http://localhost:3000', // Local development URL
+];
+
+// Dynamically set Access-Control-Allow-Origin based on the request's origin
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g., Postman, curl)
+      if (!origin) return callback(null, true);
+
+      // Check if the origin is in the allowed list
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // If the origin is not allowed, return an error
+      return callback(new Error('Not allowed by CORS'), false);
+    },
+    methods: ['GET', 'POST', 'OPTIONS'], // Explicitly allow methods
+    allowedHeaders: ['Content-Type'], // Allow specific headers
+    credentials: true, // Allow credentials if needed
+  })
+);
+
+// Handle preflight OPTIONS requests
+app.options('*', cors()); // Ensure OPTIONS requests are handled
 
 // Security: Rate limiting to prevent abuse
 const limiter = rateLimit({
