@@ -15,10 +15,10 @@ const app = express();
 // Middleware for parsing JSON requests
 app.use(express.json());
 
-// CORS configuration with wildcard for debugging
+// CORS configuration
 app.use(
   cors({
-    origin: '*', // Temporarily allow all origins
+    origin: '*', // Use wildcard for now to rule out origin issues
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type'],
     credentials: true,
@@ -27,11 +27,20 @@ app.use(
 
 // Handle preflight OPTIONS requests
 app.options('*', (req: Request, res: Response) => {
-  console.log('Received OPTIONS request:', req.headers.origin);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.status(204).send();
+  try {
+    console.log('Handling OPTIONS request for:', req.url);
+    console.log('Origin:', req.headers.origin);
+    console.log('Headers:', req.headers);
+
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.status(204).send();
+  } catch (error) {
+    console.error('Error in OPTIONS handler:', error);
+    res.status(500).send('Internal Server Error in OPTIONS');
+  }
 });
 
 // Security: Rate limiting to prevent abuse
@@ -56,6 +65,5 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-// Start the server
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
+// Export the app for Vercel
+export default app;
