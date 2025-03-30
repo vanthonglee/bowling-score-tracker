@@ -1,8 +1,8 @@
+// apps/frontend/src/components/game/PlayerRollSelector.tsx
 import { useEffect } from 'react';
 import RollSelector from './RollSelector';
 import { PlayerRollSelectorProps } from './types';
 
-// Component to render roll selectors for a single player
 const PlayerRollSelector: React.FC<PlayerRollSelectorProps> = ({
   player,
   scores,
@@ -16,10 +16,8 @@ const PlayerRollSelector: React.FC<PlayerRollSelectorProps> = ({
   const roll3 = scores[player]?.[2] || '';
   const roll1Options = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'X'];
 
-  // Reset Roll 2 and Roll 3 when Roll 1 changes to a strike in frames 1-9
   useEffect(() => {
     if (currentFrame < 10 && (roll1 === 'X' || roll1 === '10')) {
-      // Only update if Roll 2 or Roll 3 is not already empty to avoid infinite loop
       if (roll2 !== '' || roll3 !== '') {
         setScores(prevScores => ({
           ...prevScores,
@@ -27,17 +25,14 @@ const PlayerRollSelector: React.FC<PlayerRollSelectorProps> = ({
         }));
       }
     }
-  }, [roll1, currentFrame, player]); // Removed scores and setScores from dependencies
+  }, [roll1, currentFrame, player]);
 
   const roll2Options = getRoll2Options(roll1, currentFrame);
   const roll3Options = getRoll3Options(roll1, roll2, currentFrame);
 
   return (
-    <div className="mb-4">
-      {/* Player name */}
-      <h3>{player}</h3>
-
-      {/* Roll 1 Selector */}
+    <div className="space-y-3">
+      <h3 className="text-lg font-semibold text-foreground">{player}</h3>
       <RollSelector
         player={player}
         rollIndex={0}
@@ -50,8 +45,6 @@ const PlayerRollSelector: React.FC<PlayerRollSelectorProps> = ({
           })
         }
       />
-
-      {/* Roll 2 Selector: Hidden in frames 1-9 if Roll 1 is a strike */}
       {(currentFrame < 10 ? roll1 !== 'X' && roll1 !== '10' : true) && roll1 && (
         <RollSelector
           player={player}
@@ -66,8 +59,6 @@ const PlayerRollSelector: React.FC<PlayerRollSelectorProps> = ({
           }
         />
       )}
-
-      {/* Roll 3 Selector: Only shown in 10th frame for strike or spare */}
       {currentFrame === 10 && roll3Options.length > 0 && (
         <RollSelector
           player={player}

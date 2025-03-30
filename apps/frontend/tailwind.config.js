@@ -51,11 +51,43 @@ module.exports = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        // Add custom bowling-themed colors
+        bowling: {
+          blue: {
+            DEFAULT: '#1D4ED8', // A vibrant blue for primary accents
+            50: '#EFF6FF',
+            100: '#DBEAFE',
+            200: '#BFDBFE',
+            300: '#93C5FD',
+            400: '#60A5FA',
+            500: '#3B82F6',
+            600: '#1D4ED8',
+            700: '#1E40AF',
+            800: '#1E3A8A',
+            900: '#1E3A8A',
+          },
+          green: {
+            DEFAULT: '#16A34A', // A green for winners/success
+            50: '#F0FDF4',
+            100: '#DCFCE7',
+            200: '#BBF7D0',
+            300: '#86EFAC',
+            400: '#4ADE80',
+            500: '#22C55E',
+            600: '#16A34A',
+            700: '#15803D',
+            800: '#166534',
+            900: '#14532D',
+          },
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+      },
+      fontFamily: {
+        sans: ['"Poppins"', 'Inter', 'system-ui', 'sans-serif'],
       },
       keyframes: {
         'accordion-down': {
@@ -66,10 +98,20 @@ module.exports = {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
         },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideUp: {
+          '0%': { transform: 'translateY(20px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'fade-in': 'fadeIn 0.5s ease-in-out',
+        'slide-up': 'slideUp 0.5s ease-in-out',
       },
     },
   },

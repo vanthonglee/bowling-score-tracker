@@ -1,99 +1,147 @@
-import { useEffect } from 'react';
+// apps/frontend/src/components/page/Results.tsx
+import { useEffect, useState } from 'react';
 import { useGameStore } from '../../store';
 import { Button } from '../ui/button';
 import { useNavigate } from 'react-router-dom';
 import Scoreboard from '../game/Scoreboard';
 import useFetchScoreboard from '@/hooks/useFetchScoreboard';
+import { Trophy, PartyPopper, Share2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import Confetti from 'react-confetti';
 
-// Results component to display the final scoreboard and winner
 const Results = () => {
-  // State management using Zustand store
   const { gameId, scoreboard, setGameId, setPlayers, setCurrentFrame, setScoreboard, setError } = useGameStore();
   const navigate = useNavigate();
+  const [showConfetti, setShowConfetti] = useState(false);
 
-  // Redirect to Home if gameId is not set (game hasn't started or was reset)
   useEffect(() => {
     if (!gameId) {
       console.log('gameId is null, redirecting to Home from Results');
-      navigate('/', { replace: true }); // Use replace to avoid adding to history
+      navigate('/', { replace: true });
     }
   }, [gameId, navigate]);
 
-  // Fetch the latest scoreboard as a fallback if the store data is stale
   const { data, isLoading, error } = useFetchScoreboard(gameId || '');
 
-  // Update the scoreboard in the store if the fetched data is different
   useEffect(() => {
     if (data && data.scoreboard) {
       setScoreboard(data.scoreboard);
     }
   }, [data, setScoreboard]);
 
-  // Handle error from API call
   useEffect(() => {
     if (error) {
       setError('Failed to load game results. Please try again.');
     }
   }, [error, setError]);
 
-  // Handle "New Game" button click to reset the game state
   const handleNewGame = () => {
-    setGameId(null); // Reset gameId
-    setPlayers([]); // Reset players
-    setCurrentFrame(1); // Reset currentFrame to 1 for a new game
-    setScoreboard([]); // Reset scoreboard
-    setError(null); // Clear any previous errors
-    navigate('/'); // Navigate back to Home
+    setGameId(null);
+    setPlayers([]);
+    setCurrentFrame(1);
+    setScoreboard([]);
+    setError(null);
+    navigate('/');
   };
 
-  // Return null while redirecting to avoid rendering a blank page
-  if (!gameId) {
-    return null;
-  }
-
-  // Use the scoreboard from the store, which should be updated by the useEffect
   const displayScoreboard = scoreboard && scoreboard.length > 0 ? scoreboard : data?.scoreboard;
 
-  // Redirect to Home if no scoreboard data is available
   if (!displayScoreboard || displayScoreboard.length === 0) {
     navigate('/', { replace: true });
     return null;
   }
 
-  // Determine the highest score and all winners
   const highestScore = Math.max(...displayScoreboard.map(player => player.total));
   const winners = displayScoreboard
     .filter(player => player.total === highestScore)
     .map(player => player.name);
 
+  useEffect(() => {
+    if (winners.length > 0) {
+      setShowConfetti(true);
+    }
+  }, [winners]);
+
+  const handleShareResults = () => {
+    const summary = `Player${winners.length > 1 ? 's' : ''} ${winners.join(' and ')} won with a score of ${highestScore}! 🎳`;
+    navigator.clipboard.writeText(summary).then(() => {
+      alert('Results copied to clipboard!');
+    });
+  };
+
   if (isLoading) {
-    return <div>Loading results...</div>;
+    return <div className="text-center text-muted-foreground">Loading results...</div>;
   }
 
   if (error) {
-    return <div>Error loading results: {error.message}</div>;
+    return <div className="text-center text-destructive">Error loading results: {error.message}</div>;
   }
 
   return (
-    <div className="p-4">
-      {/* Page title */}
-      <h1 className="text-2xl mb-4">Game Results</h1>
-
-      {/* Highlight winners */}
-      {winners.length > 0 && (
-        <p className="text-lg mb-4">
-          Winner{winners.length > 1 ? 's' : ''}: {winners.join(', ')}
-        </p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-bowling-blue-50 to-bowling-green-50 dark:from-bowling-blue-900 dark:to-bowling-green-900 p-4 md:p-6">
+      {showConfetti && (
+        <Confetti
+          width={window.innerWidth}
+          height={window.innerHeight}
+          recycle={false}
+          numberOfPieces={200}
+        />
       )}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+        className="bg-card shadow-lg rounded-lg p-6 w-full max-w-4xl border border-border"
+      >
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-bold text-bowling-blue dark:text-bowling-blue-400 flex items-center justify-center gap-2">
+            <Trophy className="w-8 h-8 text-yellow-500 dark:text-yellow-400" />
+            Game Results
+          </h1>
+        </div>
 
-      {/* Scoreboard Section */}
-      <h2 className="mt-4 text-xl">Scoreboard</h2>
-      <Scoreboard scoreboard={displayScoreboard} winners={winners} />
+        {winners.length > 0 && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="bg-bowling-green-50 dark:bg-bowling-green-900/50 border border-bowling-green-200 dark:border-bowling-green-800 rounded-lg p-4 mb-6 text-center"
+          >
+            <div className="flex items-center justify-center gap-2">
+              <PartyPopper className="w-6 h-6 text-bowling-green dark:text-bowling-green-400" />
+              <p className="text-lg font-semibold text-bowling-green dark:text-bowling-green-400">
+                Winner{winners.length > 1 ? 's' : ''}: {winners.join(', ')}
+              </p>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              {winners.length > 1 ? 'It’s a tie! Amazing game!' : 'Congratulations on an amazing game!'}
+            </p>
+          </motion.div>
+        )}
 
-      {/* New Game Button */}
-      <Button className="mt-4" onClick={handleNewGame} aria-label="Start a new game">
-        New Game
-      </Button>
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold mb-4 text-foreground">Scoreboard</h2>
+          <Scoreboard scoreboard={displayScoreboard} winners={winners} />
+        </div>
+
+        <div className="mt-8 text-center space-y-4">
+          <Button
+            onClick={handleNewGame}
+            className="w-full md:w-auto bg-bowling-blue hover:bg-bowling-blue-700 dark:bg-bowling-blue-600 dark:hover:bg-bowling-blue-500 transition-colors"
+            aria-label="Start a new game"
+          >
+            New Game
+          </Button>
+          <Button
+            onClick={handleShareResults}
+            className="w-full md:w-auto bg-muted hover:bg-muted/80 transition-colors"
+            aria-label="Share game results"
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            Share Results
+          </Button>
+        </div>
+      </motion.div>
     </div>
   );
 };

@@ -1,3 +1,4 @@
+// apps/frontend/src/components/page/Game.tsx
 import { useDeferredValue, useEffect } from 'react';
 import { useGameStore } from '../../store';
 import { Button } from '../ui/button';
@@ -6,32 +7,28 @@ import PlayerRollSelector from '../game/PlayerRollSelector';
 import useBowlingLogic from '@/hooks/useBowlingLogic';
 import useFetchScoreboard from '@/hooks/useFetchScoreboard';
 import { useNavigate } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-// Main Game component to handle roll selection and score submission
 const Game = () => {
-  // State management using Zustand store
   const { gameId, players, currentFrame, setError, setScoreboard } = useGameStore();
   const navigate = useNavigate();
 
-  // Redirect to Home if gameId is not set (game hasn't started)
   useEffect(() => {
     if (!gameId) {
       console.log('gameId is null, redirecting to Home');
-      navigate('/', { replace: true }); // Use replace to avoid adding to history
+      navigate('/', { replace: true });
     }
   }, [gameId, navigate]);
 
-  // Use the custom hook to fetch the scoreboard
   const { data, isLoading, error } = useFetchScoreboard(gameId || '');
 
-  // Update the scoreboard in the store when data is fetched
   useEffect(() => {
     if (data) {
       setScoreboard(data.scoreboard);
     }
   }, [data, setScoreboard]);
 
-  // Use the custom hook to handle bowling logic
   const {
     scores,
     setScores,
@@ -42,7 +39,6 @@ const Game = () => {
     isPending,
   } = useBowlingLogic();
 
-  // Handle error from API call
   useEffect(() => {
     if (error) {
       setError('Failed to load scoreboard. Please try again.');
@@ -50,53 +46,100 @@ const Game = () => {
   }, [error, setError]);
 
   if (!gameId) {
-    return null; // Return null while redirecting
+    return null;
   }
 
   if (isLoading) {
-    return <div>Loading scoreboard...</div>;
+    return <div className="text-center text-muted-foreground">Loading scoreboard...</div>;
   }
 
   if (error) {
-    return <div>Error loading scoreboard: {error.message}</div>;
+    return (
+      <div className="text-center text-destructive">
+        Error loading scoreboard: {error.message}
+      </div>
+    );
   }
 
-  // Ensure scoreboard is defined before rendering
   const scoreboard = data?.scoreboard;
   if (!scoreboard) {
-    return <div>No scores available yet.</div>;
+    return <div className="text-center text-muted-foreground">No scores available yet.</div>;
   }
 
+  const submitDisabled = isSubmitDisabled(players, currentFrame) || isPending;
+
   return (
-    <div className="p-4">
-      {/* Display the current frame */}
-      <h1 className="text-xl mb-4">Frame {currentFrame}</h1>
-
-      {/* Render roll selectors for each player */}
-      {players.map(player => (
-        <PlayerRollSelector
-          key={player}
-          player={player}
-          scores={scores}
-          setScores={setScores}
-          getRoll2Options={getRoll2Options}
-          getRoll3Options={getRoll3Options}
-          currentFrame={currentFrame}
-        />
-      ))}
-
-      {/* Submit Scores Button: Disabled during submission or if validation fails */}
-      <Button
-        onClick={() => handleSubmit(gameId, currentFrame, players)}
-        disabled={isSubmitDisabled(players, currentFrame) || isPending}
-        aria-label="Submit scores"
+    <div className="min-h-screen bg-gradient-to-br from-bowling-blue-50 to-bowling-green-50 dark:from-bowling-blue-900 dark:to-bowling-green-900 p-4 md:p-6">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-5xl mx-auto"
       >
-        {isPending ? 'Submitting...' : 'Submit Scores'}
-      </Button>
+        {/* Header Section */}
+        <div className="flex justify-between items-center mb-6 bg-card shadow-md rounded-lg p-4 border border-border">
+          <h1 className="text-2xl font-bold text-bowling-blue dark:text-bowling-blue-400">
+            🎳 Frame {currentFrame} of 10
+          </h1>
+          <div className="text-sm text-muted-foreground">
+            {players.length} Players
+          </div>
+        </div>
 
-      {/* Scoreboard Section */}
-      <h2 className="mt-4 text-xl">Scoreboard</h2>
-      <Scoreboard scoreboard={scoreboard} currentFrame={currentFrame} />
+        {/* Roll Selection Section */}
+        <div className="space-y-6">
+          {players.map(player => (
+            <motion.div
+              key={player}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-card shadow-md rounded-lg p-4 border-l-4 border-bowling-blue"
+            >
+              <PlayerRollSelector
+                player={player}
+                scores={scores}
+                setScores={setScores}
+                getRoll2Options={getRoll2Options}
+                getRoll3Options={getRoll3Options}
+                currentFrame={currentFrame}
+              />
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Submit Button */}
+        <div className="mt-6">
+          <Button
+            onClick={() => handleSubmit(gameId, currentFrame, players)}
+            disabled={submitDisabled}
+            className={`w-full md:w-auto transition-colors ${
+              submitDisabled
+                ? 'opacity-50 cursor-not-allowed'
+                : 'bg-bowling-blue hover:bg-bowling-blue-700 dark:bg-bowling-blue-600 dark:hover:bg-bowling-blue-500'
+            }`}
+            aria-label="Submit scores"
+          >
+            {isPending ? 'Submitting...' : 'Submit Scores'}
+          </Button>
+          {submitDisabled && !isPending && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="mt-2 text-sm text-muted-foreground flex items-center"
+            >
+              <AlertCircle className="w-4 h-4 mr-1" />
+              Please complete all rolls for this frame to submit.
+            </motion.p>
+          )}
+        </div>
+
+        {/* Scoreboard Section */}
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold mb-4 text-foreground">Scoreboard</h2>
+          <Scoreboard scoreboard={scoreboard} currentFrame={currentFrame} />
+        </div>
+      </motion.div>
     </div>
   );
 };

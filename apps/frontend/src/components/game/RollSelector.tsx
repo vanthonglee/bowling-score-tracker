@@ -1,24 +1,34 @@
-import { Badge } from "@/components/ui/badge"
-import { RollSelectorProps } from "./types";
+// apps/frontend/src/components/game/RollSelector.tsx
+import { Badge } from '@/components/ui/badge';
+import { RollSelectorProps } from './types';
+import { motion } from 'framer-motion';
 
-// Reusable component to render a scrollable list of badges for roll selection
 const RollSelector: React.FC<RollSelectorProps> = ({ player, rollIndex, value, options, onSelect }) => {
   return (
-    <div className="mb-2">
-      {/* Label indicating which roll is being selected */}
-      <label className="block mb-1">Roll {rollIndex + 1}</label>
-      {/* Scrollable container for badges */}
-      <div className="w-full flex overflow-x-auto space-x-2 pb-2">
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-muted-foreground">
+        Roll {rollIndex + 1}
+      </label>
+      <div className="flex flex-wrap gap-2">
         {options.map(option => (
-          <Badge
+          <motion.div
             key={option}
-            variant={value === option ? 'default' : 'secondary'} // Highlight selected option
-            className="cursor-pointer px-3 py-1 whitespace-nowrap"
-            onClick={() => onSelect(option)}
-            aria-label={`Select ${option} for Roll ${rollIndex + 1} of ${player}`} // Accessibility: ARIA label
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            {option}
-          </Badge>
+            <Badge
+              variant={value === option ? 'default' : 'outline'}
+              className={`cursor-pointer px-4 py-2 text-sm font-medium transition-all ${
+                value === option
+                  ? 'bg-bowling-blue text-white'
+                  : 'border-border hover:bg-muted'
+              }`}
+              onClick={() => onSelect(option)}
+              aria-label={`Select ${option} for Roll ${rollIndex + 1} of ${player}`}
+            >
+              {option}
+            </Badge>
+          </motion.div>
         ))}
       </div>
     </div>
