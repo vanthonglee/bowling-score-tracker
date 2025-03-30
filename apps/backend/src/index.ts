@@ -1,4 +1,3 @@
-// apps/backend/src/index.ts
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
@@ -16,32 +15,34 @@ const app = express();
 app.use(express.json());
 
 // CORS configuration
-// app.use(
-//   cors({
-//     origin: '*', // Use wildcard for now to rule out origin issues
-//     methods: ['GET', 'POST', 'OPTIONS'],
-//     allowedHeaders: ['Content-Type'],
-//     credentials: true,
-//   })
-// );
+const allowedOrigins = [
+  'https://bowling-score-tracker-frontend[-*].vercel.app', // Frontend URL
+  'http://localhost:3000', // Local development URL
+];
 
-// // Handle preflight OPTIONS requests
-// app.options('*', (req: Request, res: Response) => {
-//   try {
-//     console.log('Handling OPTIONS request for:', req.url);
-//     console.log('Origin:', req.headers.origin);
-//     console.log('Headers:', req.headers);
+// Dynamically set Access-Control-Allow-Origin based on the request's origin
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g., Postman, curl)
+      if (!origin) return callback(null, true);
 
-//     res.setHeader('Access-Control-Allow-Origin', '*');
-//     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-//     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-//     res.setHeader('Access-Control-Allow-Credentials', 'true');
-//     res.status(204).send();
-//   } catch (error) {
-//     console.error('Error in OPTIONS handler:', error);
-//     res.status(500).send('Internal Server Error in OPTIONS');
-//   }
-// });
+      // Check if the origin is in the allowed list
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // If the origin is not allowed, return an error
+      return callback(new Error('Not allowed by CORS'), false);
+    },
+    methods: ['GET', 'POST', 'OPTIONS'], // Explicitly allow methods
+    allowedHeaders: ['Content-Type'], // Allow specific headers
+    credentials: true, // Allow credentials if needed
+  })
+);
+
+// Handle preflight OPTIONS requests
+app.options('*', cors()); // Ensure OPTIONS requests are handled
 
 // Security: Rate limiting to prevent abuse
 const limiter = rateLimit({
@@ -55,7 +56,6 @@ app.use('/api/game', gameRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error(`Error in request to ${req.url}:`, err);
   if (err instanceof ApiError) {
     console.error(`API Error [${err.status}]: ${err.message}`);
     res.status(err.status).json({ error: err.message });
@@ -65,5 +65,6 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   }
 });
 
-// Export the app for Vercel
-export default app;
+// Start the server
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
