@@ -157,8 +157,6 @@ sh scripts/docker-down.sh
 #### Container is running
 ![alt text](./screenshots/image-3.png)
 
-![alt text](./screenshots/image-4.png)
-
 #### Demo (Happy Case)
 
 https://github.com/user-attachments/assets/83cab59e-fd3d-43de-84ba-569b9aa6e220
