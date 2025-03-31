@@ -5,7 +5,7 @@ import { Button } from '../ui/button';
 import { useNavigate } from 'react-router-dom';
 import Scoreboard from '../game/Scoreboard';
 import useFetchScoreboard from '@/hooks/useFetchScoreboard';
-import { Trophy, PartyPopper, Share2 } from 'lucide-react';
+import { Trophy, PartyPopper } from 'lucide-react'; // Removed Share2 import
 import { motion } from 'framer-motion';
 import Confetti from 'react-confetti';
 
@@ -62,13 +62,6 @@ const Results = () => {
     }
   }, [winners]);
 
-  const handleShareResults = () => {
-    const summary = `Player${winners.length > 1 ? 's' : ''} ${winners.join(' and ')} won with a score of ${highestScore}! 🎳`;
-    navigator.clipboard.writeText(summary).then(() => {
-      alert('Results copied to clipboard!');
-    });
-  };
-
   if (isLoading) {
     return <div className="text-center text-muted-foreground">Loading results...</div>;
   }
@@ -124,21 +117,13 @@ const Results = () => {
           <Scoreboard scoreboard={displayScoreboard} winners={winners} />
         </div>
 
-        <div className="mt-8 text-center space-y-4">
+        <div className="mt-8 text-center">
           <Button
             onClick={handleNewGame}
             className="w-full md:w-auto bg-bowling-blue hover:bg-bowling-blue-700 dark:bg-bowling-blue-600 dark:hover:bg-bowling-blue-500 transition-colors"
             aria-label="Start a new game"
           >
             New Game
-          </Button>
-          <Button
-            onClick={handleShareResults}
-            className="w-full md:w-auto bg-muted hover:bg-muted/80 transition-colors"
-            aria-label="Share game results"
-          >
-            <Share2 className="w-4 h-4 mr-2" />
-            Share Results
           </Button>
         </div>
       </motion.div>
