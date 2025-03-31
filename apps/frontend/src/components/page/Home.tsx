@@ -1,5 +1,5 @@
 // apps/frontend/src/components/page/Home.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,35 +8,63 @@ import useStartGame from '../../hooks/useStartGame';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * Home page component where users can enter player names and start a new game.
+ * Handles name validation, assigns unique player IDs, and resets game state on mount.
+ */
 const Home = () => {
   const [names, setNames] = useState(['', '', '', '', '']);
-  const { setGameId, setPlayers, setCurrentFrame, setError } = useGameStore();
+  const { setGameId, setPlayers, setCurrentFrame, setError, resetGame } = useGameStore();
   const navigate = useNavigate();
+
+  // Reset game state when the component mounts to ensure a fresh start
+  useEffect(() => {
+    resetGame();
+  }, [resetGame]);
 
   const nonEmptyNames = names.filter(name => name.trim() !== '');
   const isStartDisabled = nonEmptyNames.length < 2;
 
-  const { startGame, isPending, error } = useStartGame((gameId) => {
+  const { startGame, isPending, error } = useStartGame((gameId, players) => {
     setGameId(gameId);
-    setPlayers(names.filter(name => name.trim()));
+    setPlayers(players); // Use the players returned by the backend
     setCurrentFrame(1);
     setError(null);
     navigate('/game');
   });
 
   const handleStartGame = () => {
-    const players = names.filter(name => name.trim());
+    // Validate and prepare player data
+    const players = names
+      .map((name, index) => ({
+        playerId: uuidv4(),
+        name: name.trim(),
+      }))
+      .filter(player => player.name !== '');
+
+    // Validate player names
     if (players.length < 2) {
       setError('Please enter at least two player names');
       return;
     }
-    startGame(players);
-  };
 
-  if (error) {
-    setError('Couldn’t start the game. Please try again.');
-  }
+    // Check for invalid characters in names (e.g., only allow letters, numbers, and spaces)
+    const invalidName = players.find(player => !/^[a-zA-Z0-9\s]+$/.test(player.name));
+    if (invalidName) {
+      setError('Player names can only contain letters, numbers, and spaces');
+      return;
+    }
+
+    // Capitalize the first letter of each name for display
+    const playersWithIds = players.map(player => ({
+      ...player,
+      name: player.name.charAt(0).toUpperCase() + player.name.slice(1).toLowerCase(),
+    }));
+
+    startGame(playersWithIds);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-bowling-blue-50 to-bowling-green-50 dark:from-bowling-blue-900 dark:to-bowling-green-900 p-4">
@@ -80,7 +108,25 @@ const Home = () => {
             aria-live="polite"
           >
             <AlertCircle className="w-5 h-5 mr-2" />
-            <p className="text-sm">Please enter at least 2 player names to start the game.</p>
+            <p className="text-sm">Please enter at least two player names to start the game.</p>
+          </motion.div>
+        )}
+
+        {error && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-4 flex items-center text-destructive bg-destructive/10 dark:bg-destructive/20 p-2 rounded-md"
+            aria-live="polite"
+          >
+            <AlertCircle className="w-5 h-5 mr-2" />
+            <p className="text-sm">
+              {error.message.includes('Failed to fetch')
+                ? 'Network error: Could not connect to the server. Please check your connection and try again.'
+                : error.message.includes('Invalid number of players')
+                ? 'Please enter between 2 and 5 players.'
+                : error.message || 'Couldn’t start the game. Please try again.'}
+            </p>
           </motion.div>
         )}
 

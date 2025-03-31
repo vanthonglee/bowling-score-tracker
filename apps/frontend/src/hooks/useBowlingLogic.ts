@@ -1,169 +1,129 @@
-// frontend/hooks/useBowlingLogic.ts
-import { useState, useTransition } from 'react';
-import { useNavigate } from 'react-router-dom';
+// apps/frontend/src/hooks/useBowlingLogic.ts
+import { useState, useCallback } from 'react';
 import { useGameStore } from '../store';
-import useSubmitScores from '../hooks/useSubmitScores';
-import { useQueryClient } from '@tanstack/react-query';
+import useSubmitScores from './useSubmitScores';
+import { useNavigate } from 'react-router-dom';
 
-// Define the structure of the scores state
-type Scores = Record<string, string[]>;
-
-// Define the return type of the custom hook
-interface BowlingLogic {
-  scores: Scores; // Current scores for all players
-  setScores: (scores: Scores) => void; // Function to update scores
-  getRoll2Options: (roll1: string, currentFrame: number) => string[]; // Function to get Roll 2 options
-  getRoll3Options: (roll1: string, roll2: string, currentFrame: number) => string[]; // Function to get Roll 3 options
-  isSubmitDisabled: (players: string[], currentFrame: number) => boolean; // Function to validate if submission is disabled
-  handleSubmit: (gameId: string, currentFrame: number, players: string[]) => Promise<void>; // Function to handle score submission
-  isPending: boolean; // Flag to indicate if submission is in progress
+// Define the return type for the useBowlingLogic hook
+interface UseBowlingLogicResult {
+  scores: Record<string, string[]>; // Scores for each player, keyed by playerId
+  setScores: (scores: Record<string, string[]>) => void; // Function to update scores
+  getRoll2Options: (roll1: string, currentFrame: number) => string[]; // Function to get options for the second roll
+  getRoll3Options: (roll1: string, roll2: string, currentFrame: number) => string[]; // Function to get options for the third roll
+  isSubmitDisabled: (playerIds: string[], currentFrame: number) => boolean; // Function to check if the submit button should be disabled
+  handleSubmit: (gameId: string, currentFrame: number, playerIds: string[]) => void; // Function to submit scores for a frame
+  isPending: boolean; // Indicates if a submission is in progress
 }
 
 /**
- * Custom hook to handle bowling game logic, including score submission and roll validation.
- * @returns An object containing the scores state, roll options, and submission logic.
+ * Custom hook to manage bowling game logic, including roll selection and score submission.
+ * Handles special cases for the 10th frame, where players get up to three rolls if they score a strike or spare.
+ * @returns An object containing functions and state for managing bowling game logic.
  */
-const useBowlingLogic = (): BowlingLogic => {
-  // State management using Zustand store
-  const { setCurrentFrame, setError } = useGameStore();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [scores, setScores] = useState<Scores>({}); // Scores for each player (Roll 1, Roll 2, Roll 3)
-  const [isPending, startTransition] = useTransition(); // For handling non-urgent state updates
+const useBowlingLogic = (): UseBowlingLogicResult => {
+  const { gameId, players, currentFrame, setCurrentFrame, setError } = useGameStore();
+  
+  // Initialize scores for each player, using playerId as the key
+  const [scores, setScores] = useState<Record<string, string[]>>(players.reduce((acc, p) => ({
+    ...acc,
+    [p.playerId]: ['', '', ''], // Each player starts with three empty rolls
+  }), {}));
 
-  // Use the custom hook for submitting scores
-  const { submitScores, isPending: isSubmitting, error } = useSubmitScores(async (frameNumber) => {
-    setScores({});
-    setCurrentFrame(frameNumber + 1);
-    setError(null);
-
-    // After the 10th frame, fetch the latest scoreboard before navigating
-    if (frameNumber === 10) {
-      // Invalidate and refetch the scoreboard query
-      await queryClient.invalidateQueries({ queryKey: ['scoreboard'] });
-      // Wait for the scoreboard to be refetched and updated in the store
-      await queryClient.refetchQueries({ queryKey: ['scoreboard'] });
+  const { submitScores, isPending } = useSubmitScores(async (frameNumber) => {
+    if (frameNumber < 10) {
+      // If not the last frame, advance to the next frame and reset scores
+      setCurrentFrame(frameNumber + 1);
+      setScores(players.reduce((acc, p) => ({ ...acc, [p.playerId]: ['', '', ''] }), {}));
+    } else {
+      // If the last frame, navigate to the results page
       navigate('/results');
     }
   });
 
-  // Handle error from API call
-  if (error) {
-    setError(error.message || 'Failed to submit scores. Please try again.');
-  }
+  const navigate = useNavigate();
 
-  // Determine valid options for Roll 2 based on Roll 1
-  const getRoll2Options = (roll1: string, currentFrame: number): string[] => {
-    if (!roll1) return []; // No options if Roll 1 is not selected
-    if (currentFrame < 10) {
-      if (roll1 === 'X' || roll1 === '10') return []; // Strike in frames 1-9 means no Roll 2
-      const roll1Value = parseInt(roll1);
-      if (isNaN(roll1Value)) return [];
-      const remainingPins = 10 - roll1Value;
-      const options = Array.from({ length: remainingPins + 1 }, (_, i) => i.toString());
-      if (remainingPins > 0) options.push('/'); // Add spare option if applicable
-      return options;
-    } else {
-      // 10th frame: Roll 2 is always allowed
-      if (roll1 === 'X' || roll1 === '10') {
-        return ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'X'];
-      }
-      const roll1Value = parseInt(roll1);
-      if (isNaN(roll1Value)) return [];
-      const remainingPins = 10 - roll1Value;
-      const options = Array.from({ length: remainingPins + 1 }, (_, i) => i.toString());
-      if (remainingPins > 0) options.push('/'); // Add spare option if applicable
-      return options;
+  /**
+   * Determines the valid options for the second roll based on the first roll and current frame.
+   * - In frames 1-9: If the first roll is a strike ('X' or '10'), no second roll is allowed.
+   * - In frame 10: If the first roll is a strike, the second roll can be 0-10 or 'X'.
+   * - Otherwise, the second roll can be 0 to (10 - first roll), with '/' for a spare if applicable.
+   * @param roll1 - The value of the first roll (e.g., 'X', '7', '10').
+   * @param currentFrame - The current frame number (1-10).
+   * @returns An array of valid options for the second roll.
+   */
+  const getRoll2Options = useCallback((roll1: string, currentFrame: number): string[] => {
+    if (!roll1) return ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'X'];
+    if (currentFrame < 10 && (roll1 === 'X' || roll1 === '10')) return []; // No second roll after a strike in frames 1-9
+    if (currentFrame === 10 && (roll1 === 'X' || roll1 === '10')) {
+      return ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'X']; // Allow all options after a strike in frame 10
     }
-  };
+    const r1 = roll1 === 'X' ? 10 : parseInt(roll1);
+    const options = Array.from({ length: 11 - r1 }, (_, i) => i.toString());
+    if (r1 < 10) options.push('/'); // Add spare option if first roll is less than 10
+    return options;
+  }, []);
 
-  // Determine valid options for Roll 3 (10th frame only) based on Roll 1 and Roll 2
-  const getRoll3Options = (roll1: string, roll2: string, currentFrame: number): string[] => {
-    if (currentFrame !== 10) return []; // Only for 10th frame
-    if (!roll1 || !roll2) return []; // Require Roll 1 and Roll 2 to be selected
-
-    if (roll1 === 'X' || roll1 === '10') {
-      // After a strike, Roll 2 can be anything, and Roll 3 is always required
-      if (roll2 === 'X' || roll2 === '10') {
-        return ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'X'];
-      }
-      const roll2Value = parseInt(roll2);
-      if (isNaN(roll2Value)) return [];
-      const remainingPins = 10 - roll2Value;
-      const options = Array.from({ length: remainingPins + 1 }, (_, i) => i.toString());
-      if (remainingPins > 0) options.push('/'); // Add spare option if applicable
-      return options;
-    }
-
-    const roll1Value = parseInt(roll1);
-    const roll2Value = roll2 === '/' ? 10 - roll1Value : parseInt(roll2);
-    if (roll1Value + roll2Value === 10 && roll2Value !== 0) {
-      // After a spare (e.g., 3 and 7), Roll 3 is required and can be anything
+  /**
+   * Determines the valid options for the third roll, which is only applicable in the 10th frame.
+   * - If the first roll is a strike ('X') or the first two rolls make a spare (e.g., '7 /'), a third roll is allowed.
+   * - Options are 0-10 and 'X' for a strike.
+   * @param roll1 - The value of the first roll (e.g., 'X', '7', '10').
+   * @param roll2 - The value of the second roll (e.g., 'X', '/', '3').
+   * @param currentFrame - The current frame number (1-10).
+   * @returns An array of valid options for the third roll.
+   */
+  const getRoll3Options = useCallback((roll1: string, roll2: string, currentFrame: number): string[] => {
+    if (currentFrame !== 10 || !roll1 || !roll2) return [];
+    const r1 = roll1 === 'X' ? 10 : parseInt(roll1);
+    const r2 = roll2 === '/' ? 10 - r1 : (roll2 === 'X' ? 10 : parseInt(roll2 || '0'));
+    if (r1 === 10 || (r1 + r2 === 10)) {
       return ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'X'];
     }
+    return [];
+  }, []);
 
-    return []; // No third roll for open frame (sum < 10)
-  };
-
-  // Validate if all required fields are filled to enable/disable the "Submit Scores" button
-  const isSubmitDisabled = (players: string[], currentFrame: number): boolean => {
-    for (const player of players) {
-      const roll1 = scores[player]?.[0] || '';
-      const roll2 = scores[player]?.[1] || '';
-      const roll3 = scores[player]?.[2] || '';
-
-      // Roll 1 is mandatory for all players
-      if (!roll1) return true;
-
+  /**
+   * Checks if the "Submit Scores" button should be disabled.
+   * - In frames 1-9: Requires a first roll for all players; if not a strike, a second roll is also required.
+   * - In frame 10:
+   *   - If a strike on Roll 1 or a spare on Rolls 1+2, requires a third roll.
+   *   - If no strike or spare on Rolls 1+2, requires only two rolls.
+   * @param playerIds - Array of player IDs to check.
+   * @param currentFrame - The current frame number (1-10).
+   * @returns True if the submit button should be disabled, false otherwise.
+   */
+  const isSubmitDisabled = useCallback((playerIds: string[], currentFrame: number): boolean => {
+    return playerIds.some(playerId => {
+      const [r1, r2, r3] = scores[playerId] || ['', '', ''];
+      if (!r1) return true; // First roll is required
       if (currentFrame < 10) {
-        // Frames 1-9: If Roll 1 is a strike, no Roll 2 is needed
-        if (roll1 === 'X' || roll1 === '10') continue;
-        // Otherwise, Roll 2 is mandatory
-        if (!roll2) return true;
+        return r1 !== 'X' && r1 !== '10' && !r2; // Second roll required if not a strike
       } else {
-        // 10th frame: Roll 2 is always required
-        if (!roll2) return true;
-
-        const roll1Value = roll1 === 'X' || roll1 === '10' ? 10 : parseInt(roll1);
-        const roll2Value = roll2 === 'X' || roll2 === '10' ? 10 : roll2 === '/' ? 10 - roll1Value : parseInt(roll2);
-
-        // Validate that the first two rolls are valid (sum ≤ 10 unless a spare)
-        if (roll1 !== 'X' && roll1 !== '10' && roll2 !== '/' && roll1Value + roll2Value > 10) {
-          return true; // Invalid combination (e.g., 2 and 9)
+        if (!r2) return true; // Second roll is always required in frame 10
+        const r1Value = r1 === 'X' ? 10 : parseInt(r1);
+        const r2Value = r2 === '/' ? 10 - r1Value : (r2 === 'X' ? 10 : parseInt(r2));
+        if (r1 === 'X' || (r1Value + r2Value === 10)) {
+          return !r3; // Third roll required if strike or spare in frame 10
         }
-
-        // If Roll 1 is a strike or Roll 1 + Roll 2 is a spare, Roll 3 is mandatory
-        const roll3Options = getRoll3Options(roll1, roll2, currentFrame);
-        if (roll3Options.length > 0 && !roll3) return true;
+        return false; // Only two rolls required if no strike or spare
       }
-    }
-    return false;
-  };
-
-  // Handle score submission with useTransition for better UI responsiveness
-  const handleSubmit = async (gameId: string, currentFrame: number, players: string[]) => {
-    startTransition(() => {
-      // Prepare the rolls for all players in a single request, cleaning up invalid rolls
-      const rolls = players.map(player => {
-        let playerRolls = scores[player] || ['', '', ''];
-        if (currentFrame < 10 && (playerRolls[0] === 'X' || playerRolls[0] === '10')) {
-          playerRolls = [playerRolls[0]]; // Only send Roll 1 for strikes in frames 1-9
-        } else if (currentFrame === 10) {
-          // 10th frame: Only send Roll 3 if it's a strike or spare
-          const roll1Value = playerRolls[0] === 'X' || playerRolls[0] === '10' ? 10 : parseInt(playerRolls[0]);
-          const roll2Value = playerRolls[1] === 'X' || playerRolls[1] === '10' ? 10 : playerRolls[1] === '/' ? 10 - roll1Value : parseInt(playerRolls[1]);
-          const roll3Options = getRoll3Options(playerRolls[0], playerRolls[1], currentFrame);
-          if (roll3Options.length === 0) {
-            // Open frame: Only send two rolls
-            playerRolls = [playerRolls[0], playerRolls[1]];
-          }
-        }
-        return { player, rolls: playerRolls.filter(roll => roll !== '') }; // Remove empty rolls
-      });
-
-      submitScores(gameId, currentFrame, rolls);
     });
-  };
+  }, [scores]);
+
+  /**
+   * Submits the scores for the current frame for all players.
+   * - Maps the scores to a rolls array with playerId and submits them via the submitScores function.
+   * @param gameId - The ID of the game.
+   * @param currentFrame - The current frame number (1-10).
+   * @param playerIds - Array of player IDs to submit scores for.
+   */
+  const handleSubmit = useCallback((gameId: string, currentFrame: number, playerIds: string[]) => {
+    const rolls = playerIds.map(playerId => ({
+      playerId,
+      rolls: scores[playerId].filter(Boolean).map(r => r === 'X' ? 'X' : r === '/' ? '/' : r),
+    }));
+    submitScores(gameId, currentFrame, rolls);
+  }, [scores, submitScores]);
 
   return {
     scores,
@@ -172,7 +132,7 @@ const useBowlingLogic = (): BowlingLogic => {
     getRoll3Options,
     isSubmitDisabled,
     handleSubmit,
-    isPending: isSubmitting,
+    isPending,
   };
 };
 

@@ -1,3 +1,4 @@
+// apps/backend/src/routes/gameRoutes.ts
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { parseRolls } from '../services/gameService';
@@ -9,13 +10,13 @@ const games: Record<string, Game> = {};
 
 interface StartGameRequest extends Request {
   body: {
-    players: string[];
+    players: { playerId: string; name: string }[];
   };
 }
 
 interface SubmitScoresRequest extends Request {
   body: {
-    rolls: { player: string; rolls: string[] }[]; // Array of player rolls for the frame
+    rolls: { playerId: string; rolls: string[] }[];
   };
 }
 
@@ -24,17 +25,29 @@ const router = Router();
 // Start a new game
 router.post('/start', (req: StartGameRequest, res: Response) => {
   const { players } = req.body;
-  if (!players || players.length < 2 || players.length > 5) {
+  if (!players || !Array.isArray(players) || players.length < 2 || players.length > 5) {
     throw new ApiError(400, 'Invalid number of players. Must be between 2 and 5.');
   }
 
   try {
+    // Validate player data
+    const validatedPlayers = players.map((player: any) => {
+      if (!player.playerId || !player.name || typeof player.name !== 'string') {
+        throw new ApiError(400, 'Each player must have a playerId and a non-empty name');
+      }
+      return {
+        playerId: player.playerId,
+        name: player.name.trim(),
+        frames: [],
+      };
+    });
+
     const game: Game = {
       gameId: uuidv4(),
-      players: players.map((name: string) => ({ name, frames: [] })),
+      players: validatedPlayers,
     };
     games[game.gameId] = game;
-    res.json({ gameId: game.gameId });
+    res.json({ gameId: game.gameId, players: game.players });
   } catch (error) {
     throw new ApiError(500, 'Failed to start game');
   }
@@ -59,9 +72,9 @@ router.post('/:gameId/frame/:frameNumber/scores', (req: SubmitScoresRequest, res
 
   // Validate and store rolls for each player
   try {
-    rolls.forEach(({ player, rolls: playerRolls }) => {
-      const playerObj = game.players.find((p: Player) => p.name === player);
-      if (!playerObj) throw new ApiError(404, `Player ${player} not found`);
+    rolls.forEach(({ playerId, rolls: playerRolls }) => {
+      const playerObj = game.players.find((p: Player) => p.playerId === playerId);
+      if (!playerObj) throw new ApiError(404, `Player with ID ${playerId} not found`);
 
       const parsedRolls = parseRolls(playerRolls, frameNum);
       playerObj.frames[frameNum - 1] = { rolls: parsedRolls };
@@ -81,7 +94,7 @@ router.get('/:gameId/scoreboard', (req: Request, res: Response) => {
 
   const scoreboard = game.players.map((player: Player) => {
     const { frames, total } = calculatePlayerScore(player.frames);
-    return { name: player.name, frames, total };
+    return { playerId: player.playerId, name: player.name, frames, total };
   });
   res.json({ scoreboard });
 });

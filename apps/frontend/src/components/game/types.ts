@@ -1,32 +1,30 @@
-// Define the structure of a scoreboard entry for type safety
+// apps/frontend/src/components/game/types.ts
 export interface ScoreboardEntry {
-  name: string; // Player name
-  frames: { rolls: number[]; display: string; cumulativeTotal: number | null }[]; // Frame data with rolls, display string, and cumulative total
-  total: number; // Total score for the player
+  playerId: string; // Unique identifier for the player
+  name: string; // Player name (can be duplicated)
+  frames: { rolls: number[]; display: string; cumulativeTotal: number | null }[];
+  total: number;
 }
 
-// Props for the RollSelector component to ensure type safety
 export interface RollSelectorProps {
-  player: string; // Player name for identifying the score entry
-  rollIndex: number; // Index of the roll (0 for Roll 1, 1 for Roll 2, 2 for Roll 3)
-  value: string; // Current selected value for the roll
-  options: string[]; // Valid options for the roll
-  onSelect: (value: string) => void; // Callback to handle selection
+  player: string; // Changed to playerId
+  rollIndex: number;
+  value: string;
+  options: string[];
+  onSelect: (value: string) => void;
 }
 
-// Props for the PlayerRollSelector component
 export interface PlayerRollSelectorProps {
-  player: string; // Player name
-  scores: Record<string, string[]>; // Current scores for all players
-  setScores: (scores: Record<string, string[]>) => void; // Function to update scores
-  getRoll2Options: (roll1: string, currentFrame: number) => string[]; // Function to get Roll 2 options
-  getRoll3Options: (roll1: string, roll2: string, currentFrame: number) => string[]; // Function to get Roll 3 options
-  currentFrame: number; // Current frame number
+  player: string; // Changed to playerId
+  scores: Record<string, string[]>; // Keyed by playerId
+  setScores: (scores: Record<string, string[]>) => void;
+  getRoll2Options: (roll1: string, currentFrame: number) => string[];
+  getRoll3Options: (roll1: string, roll2: string, currentFrame: number) => string[];
+  currentFrame: number;
 }
 
-// Props for the Scoreboard component
 export interface ScoreboardProps {
-  scoreboard: ScoreboardEntry[] | undefined; // Scoreboard data for all players
-  currentFrame?: number; // Current frame number for highlighting (optional)
-  winners?: string[]; // List of winner names for highlighting (optional)
+  scoreboard: ScoreboardEntry[] | undefined;
+  currentFrame?: number;
+  winners?: string[]; // Changed to array of playerIds
 }

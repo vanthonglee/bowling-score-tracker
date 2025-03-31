@@ -5,12 +5,12 @@ import { Button } from '../ui/button';
 import { useNavigate } from 'react-router-dom';
 import Scoreboard from '../game/Scoreboard';
 import useFetchScoreboard from '@/hooks/useFetchScoreboard';
-import { Trophy, PartyPopper } from 'lucide-react'; // Removed Share2 import
+import { Trophy, PartyPopper } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Confetti from 'react-confetti';
 
 const Results = () => {
-  const { gameId, scoreboard, setGameId, setPlayers, setCurrentFrame, setScoreboard, setError } = useGameStore();
+  const { gameId, scoreboard, setGameId, setPlayers, setCurrentFrame, setScoreboard, setError, resetGame } = useGameStore();
   const navigate = useNavigate();
   const [showConfetti, setShowConfetti] = useState(false);
 
@@ -36,11 +36,7 @@ const Results = () => {
   }, [error, setError]);
 
   const handleNewGame = () => {
-    setGameId(null);
-    setPlayers([]);
-    setCurrentFrame(1);
-    setScoreboard([]);
-    setError(null);
+    resetGame(); // Reset the game state before navigating
     navigate('/');
   };
 
@@ -54,7 +50,7 @@ const Results = () => {
   const highestScore = Math.max(...displayScoreboard.map(player => player.total));
   const winners = displayScoreboard
     .filter(player => player.total === highestScore)
-    .map(player => player.name);
+    .map(player => player.playerId);
 
   useEffect(() => {
     if (winners.length > 0) {
@@ -69,6 +65,20 @@ const Results = () => {
   if (error) {
     return <div className="text-center text-destructive">Error loading results: {error.message}</div>;
   }
+
+  // Create a map to track duplicate names and assign suffixes
+  const nameCounts: Record<string, number> = {};
+  const displayNames: Record<string, string> = {};
+
+  displayScoreboard.forEach(player => {
+    const name = player.name;
+    nameCounts[name] = (nameCounts[name] || 0) + 1;
+    const count = nameCounts[name];
+    displayNames[player.playerId] = count > 1 ? `${name} (${count})` : name;
+  });
+
+  // Update winner names for display
+  const winnerNames = winners.map(playerId => displayNames[playerId] || '');
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-bowling-blue-50 to-bowling-green-50 dark:from-bowling-blue-900 dark:to-bowling-green-900 p-4 md:p-6">
@@ -103,7 +113,7 @@ const Results = () => {
             <div className="flex items-center justify-center gap-2">
               <PartyPopper className="w-6 h-6 text-bowling-green dark:text-bowling-green-400" />
               <p className="text-lg font-semibold text-bowling-green dark:text-bowling-green-400">
-                Winner{winners.length > 1 ? 's' : ''}: {winners.join(', ')}
+                Winner{winners.length > 1 ? 's' : ''}: {winnerNames.join(', ')}
               </p>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
@@ -114,7 +124,13 @@ const Results = () => {
 
         <div className="mt-6">
           <h2 className="text-xl font-semibold mb-4 text-foreground">Scoreboard</h2>
-          <Scoreboard scoreboard={displayScoreboard} winners={winners} />
+          <Scoreboard
+            scoreboard={displayScoreboard.map(entry => ({
+              ...entry,
+              name: displayNames[entry.playerId] || entry.name,
+            }))}
+            winners={winners}
+          />
         </div>
 
         <div className="mt-8 text-center">

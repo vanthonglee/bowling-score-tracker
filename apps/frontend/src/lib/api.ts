@@ -1,26 +1,28 @@
+// apps/frontend/src/lib/api.ts
 import { ScoreboardEntry } from "@/components/game/types";
 
 // Define API response types
 interface StartGameResponse {
-  gameId: string;
+  gameId: string; // Unique identifier for the newly created game
+  players: { playerId: string; name: string }[]; // List of players with their unique IDs and names
 }
 
 interface SubmitScoresResponse {
-  success: boolean;
-  error?: string;
+  success: boolean; // Indicates if the score submission was successful
+  error?: string; // Optional error message if the submission failed
 }
 
 interface FetchScoreboardResponse {
-  scoreboard: ScoreboardEntry[];
+  scoreboard: ScoreboardEntry[]; // Array of scoreboard entries for all players
 }
 
 // Define API request types
 interface StartGameRequest {
-  players: string[];
+  players: { playerId: string; name: string }[]; // List of players with their unique IDs and names
 }
 
 interface SubmitScoresRequest {
-  rolls: { player: string; rolls: string[] }[];
+  rolls: { playerId: string; rolls: string[] }[]; // List of rolls for each player, identified by playerId
 }
 
 // Base URL for the API, ensuring it's defined at build time
@@ -40,7 +42,7 @@ const handleApiError = async (response: Response): Promise<void> => {
 /**
  * Starts a new game by sending a POST request to the /api/game/start endpoint.
  * @param request - The request payload containing the list of players.
- * @returns A promise that resolves to the game ID.
+ * @returns A promise that resolves to the game ID and player data.
  * @throws Error if the API request fails.
  */
 export const startGame = async (request: StartGameRequest): Promise<StartGameResponse> => {
@@ -63,10 +65,12 @@ export const startGame = async (request: StartGameRequest): Promise<StartGameRes
  * @throws Error if the API request fails or the submission is unsuccessful.
  */
 export const submitScores = async (
-  gameId: string,
+  gameId: string | null,
   frameNumber: number,
   request: SubmitScoresRequest
 ): Promise<SubmitScoresResponse> => {
+  if (!gameId) throw new Error('Game ID is required');
+
   const response = await fetch(`${API_URL}/api/game/${gameId}/frame/${frameNumber}/scores`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -87,7 +91,9 @@ export const submitScores = async (
  * @returns A promise that resolves to the scoreboard data.
  * @throws Error if the API request fails.
  */
-export const fetchScoreboard = async (gameId: string): Promise<FetchScoreboardResponse> => {
+export const fetchScoreboard = async (gameId: string | null): Promise<FetchScoreboardResponse> => {
+  if (!gameId) throw new Error('Game ID is required');
+
   const response = await fetch(`${API_URL}/api/game/${gameId}/scoreboard`);
   await handleApiError(response);
   return response.json();
