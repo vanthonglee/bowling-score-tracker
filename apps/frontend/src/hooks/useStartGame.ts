@@ -1,10 +1,11 @@
+// apps/frontend/src/hooks/useStartGame.ts
 import { startGame } from '@/lib/api';
 import { useMutation } from '@tanstack/react-query';
 
 interface UseStartGameResult {
-  startGame: (players: string[]) => void; // Function to start a new game
-  isPending: boolean; // Loading state
-  error: Error | null; // Error state
+  startGame: (players: string[]) => void;
+  isPending: boolean;
+  error: Error | null;
 }
 
 /**
@@ -14,7 +15,7 @@ interface UseStartGameResult {
  */
 const useStartGame = (onSuccess?: (gameId: string) => void): UseStartGameResult => {
   const mutation = useMutation({
-    mutationFn: (players: string[]) => startGame({ players }), // Function to start a new game
+    mutationFn: (players: string[]) => startGame({ players }),
     onSuccess: (data) => {
       if (onSuccess) {
         onSuccess(data.gameId);
@@ -22,6 +23,7 @@ const useStartGame = (onSuccess?: (gameId: string) => void): UseStartGameResult 
     },
     onError: (error: Error) => {
       console.error('Failed to start game:', error.message);
+      // The error is now caught and set in the mutation state, preventing it from being thrown
     },
   });
 
