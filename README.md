@@ -16,7 +16,6 @@ The **Bowling Score Tracker** is a web application designed to help multiple pla
 ### Sequence Diagram
 
 ```mermaid
-
 sequenceDiagram
     participant User
     participant FE as Frontend
@@ -24,6 +23,7 @@ sequenceDiagram
     participant IMS as In-Memory Storage
 
     %% Start a New Game
+    note right of User: At least 2 players (up to 5) must enter their names to start the game
     User->>FE: Enters player names and clicks "Start Game"
     FE->>BE: POST /api/game/start\n{players: [{playerId, name}, ...]}
     BE->>IMS: Create new game\n{gameId, players}
@@ -56,7 +56,6 @@ sequenceDiagram
     BE->>BE: Calculate final scoreboard
     BE-->>FE: {scoreboard: [...]}
     FE->>FE: Display final results
-
 ```
 
 ## Tech Stack
