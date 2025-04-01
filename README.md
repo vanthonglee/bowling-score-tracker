@@ -18,7 +18,7 @@ The **Bowling Score Tracker** is a web application designed to help multiple pla
 ```mermaid
 
 sequenceDiagram
-    participant User
+    actor User
     participant FE as Frontend
     participant BE as Backend
     participant IMS as In-Memory Storage
