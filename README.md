@@ -16,6 +16,7 @@ The **Bowling Score Tracker** is a web application designed to help multiple pla
 ### Sequence Diagram
 
 ```mermaid
+
 sequenceDiagram
     participant User
     participant FE as Frontend
@@ -55,6 +56,7 @@ sequenceDiagram
     BE->>BE: Calculate final scoreboard
     BE-->>FE: {scoreboard: [...]}
     FE->>FE: Display final results
+
 ```
 
 ## Tech Stack
