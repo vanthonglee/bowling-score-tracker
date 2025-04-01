@@ -16,6 +16,7 @@ The **Bowling Score Tracker** is a web application designed to help multiple pla
 ### Sequence Diagram
 
 ```mermaid
+
 sequenceDiagram
     participant User
     participant FE as Frontend
@@ -25,37 +26,55 @@ sequenceDiagram
     %% Start a New Game
     note right of User: At least 2 players (up to 5) must enter their names to start the game
     User->>FE: Enters player names and clicks "Start Game"
-    FE->>BE: POST /api/game/start\n{players: [{playerId, name}, ...]}
-    BE->>IMS: Create new game\n{gameId, players}
+    note right of FE: Frontend collects player names (2-5 players) and sends them to the backend to start a new game
+    FE->>BE: POST /api/game/start | {players: [{playerId, name}, ...]}
+    note right of BE: Backend validates the request (2-5 players) and creates a new game with a unique gameId
+    BE->>IMS: Create new game | {gameId, players}
+    note right of IMS: In-Memory Storage saves the game state with the gameId and player data
     IMS-->>BE: Game created
     BE-->>FE: {gameId, players}
-    FE->>FE: Update state (gameId, players)\nNavigate to /game
+    note right of FE: Frontend receives the gameId and players, updates its state (useGameStore), and navigates to the /game page
+    FE->>FE: Update state (gameId, players) | Navigate to /game
 
     %% Play 10 Frames
     loop 10 frames
         User->>FE: Selects rolls and clicks "Submit Scores"
-        FE->>BE: POST /api/game/:gameId/frame/:frameNumber/scores\n{rolls: [{playerId, rolls}, ...]}
-        BE->>IMS: Update game state\nAdd rolls to players' frames
+        note right of FE: Frontend collects rolls for each player in the current frame and sends them to the backend
+        FE->>BE: POST /api/game/:gameId/frame/:frameNumber/scores | {rolls: [{playerId, rolls}, ...]}
+        note right of BE: Backend validates the rolls, updates the game state by adding the rolls to the players' frames
+        BE->>IMS: Update game state | Add rolls to players' frames
+        note right of IMS: In-Memory Storage updates the game state with the new rolls for the current frame
         IMS-->>BE: Game state updated
         BE-->>FE: {success: true}
+        note right of FE: Frontend receives the success response, indicating the scores were saved
 
         %% Fetch Scoreboard After Each Frame
+        note right of FE: Frontend fetches the updated scoreboard to display the current scores
         FE->>BE: GET /api/game/:gameId/scoreboard
+        note right of BE: Backend retrieves the game state to calculate the current scoreboard
         BE->>IMS: Retrieve game state
         IMS-->>BE: Game state
         BE->>BE: Calculate scoreboard
+        note right of BE: Backend calculates the cumulative scores for each player based on the game state
         BE-->>FE: {scoreboard: [...]}
+        note right of FE: Frontend receives the scoreboard and updates the UI to show the current scores
         FE->>FE: Update UI with scoreboard
     end
 
     %% Navigate to Results
+    note right of FE: After the 10th frame, Frontend navigates to the /results page to show the final results
     FE->>FE: Navigate to /results
+    note right of FE: Frontend fetches the final scoreboard to display the game results
     FE->>BE: GET /api/game/:gameId/scoreboard
+    note right of BE: Backend retrieves the game state to calculate the final scoreboard
     BE->>IMS: Retrieve game state
     IMS-->>BE: Game state
     BE->>BE: Calculate final scoreboard
+    note right of BE: Backend calculates the final scores, including any bonuses for strikes/spares in the 10th frame
     BE-->>FE: {scoreboard: [...]}
+    note right of FE: Frontend receives the final scoreboard and displays the results, including winners
     FE->>FE: Display final results
+
 ```
 
 ## Tech Stack
