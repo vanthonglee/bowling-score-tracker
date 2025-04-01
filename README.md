@@ -17,36 +17,44 @@ The **Bowling Score Tracker** is a web application designed to help multiple pla
 
 ```mermaid
 sequenceDiagram
-    User->>Frontend: Enters player names and clicks "Start Game"
-    Frontend->>Backend: POST /api/game/start\n{players: [{playerId, name}, ...]}
-    Backend->>In-Memory Storage: Create new game\n{gameId, players}
-    In-Memory Storage-->>Backend: Game created
-    Backend-->>Frontend: {gameId, players}
-    Frontend->>Frontend: Update state (gameId, players)\nNavigate to /game
+    participant User
+    participant FE as Frontend
+    participant BE as Backend
+    participant IMS as In-Memory Storage
 
+    %% Start a New Game
+    User->>FE: Enters player names and clicks "Start Game"
+    FE->>BE: POST /api/game/start\n{players: [{playerId, name}, ...]}
+    BE->>IMS: Create new game\n{gameId, players}
+    IMS-->>BE: Game created
+    BE-->>FE: {gameId, players}
+    FE->>FE: Update state (gameId, players)\nNavigate to /game
+
+    %% Play 10 Frames
     loop 10 frames
-        User->>Frontend: Selects rolls and clicks "Submit Scores"
-        Frontend->>Backend: POST /api/game/:gameId/frame/:frameNumber/scores\n{rolls: [{playerId, rolls}, ...]}
-        Backend->>In-Memory Storage: Update game state\nAdd rolls to players' frames
-        In-Memory Storage-->>Backend: Game state updated
-        Backend-->>Frontend: {success: true}
+        User->>FE: Selects rolls and clicks "Submit Scores"
+        FE->>BE: POST /api/game/:gameId/frame/:frameNumber/scores\n{rolls: [{playerId, rolls}, ...]}
+        BE->>IMS: Update game state\nAdd rolls to players' frames
+        IMS-->>BE: Game state updated
+        BE-->>FE: {success: true}
 
-        Frontend->>Backend: GET /api/game/:gameId/scoreboard
-        Backend->>In-Memory Storage: Retrieve game state
-        In-Memory Storage-->>Backend: Game state
-        Backend->>Backend: Calculate scoreboard
-        Backend-->>Frontend: {scoreboard: [...]}
-        Frontend->>Frontend: Update UI with scoreboard
+        %% Fetch Scoreboard After Each Frame
+        FE->>BE: GET /api/game/:gameId/scoreboard
+        BE->>IMS: Retrieve game state
+        IMS-->>BE: Game state
+        BE->>BE: Calculate scoreboard
+        BE-->>FE: {scoreboard: [...]}
+        FE->>FE: Update UI with scoreboard
     end
 
-    Frontend->>Frontend: Navigate to /results
-    Frontend->>Backend: GET /api/game/:gameId/scoreboard
-    Backend->>In-Memory Storage: Retrieve game state
-    In-Memory Storage-->>Backend: Game state
-    Backend->>Backend: Calculate final scoreboard
-    Backend-->>Frontend: {scoreboard: [...]}
-    Frontend->>Frontend: Display final results
-@enduml
+    %% Navigate to Results
+    FE->>FE: Navigate to /results
+    FE->>BE: GET /api/game/:gameId/scoreboard
+    BE->>IMS: Retrieve game state
+    IMS-->>BE: Game state
+    BE->>BE: Calculate final scoreboard
+    BE-->>FE: {scoreboard: [...]}
+    FE->>FE: Display final results
 ```
 
 ## Tech Stack
